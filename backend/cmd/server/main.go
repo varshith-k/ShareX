@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"os"
 
-    "sharex-backend/internal/handlers"
+	"sharex-backend/internal/database"
+	"sharex-backend/internal/handlers"
 )
 
 func main() {
@@ -13,6 +14,8 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+
+	database.Connect()
 
 	mux := http.NewServeMux()
 
@@ -22,6 +25,8 @@ func main() {
 	})
 
 	mux.HandleFunc("/health", handlers.HealthHandler)
+
+	mux.HandleFunc("/upload", handlers.UploadHandler)
 
 	log.Printf("Server running on port %s\n", port)
 
