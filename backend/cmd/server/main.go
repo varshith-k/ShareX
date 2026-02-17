@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+    "sharex-backend/internal/handlers"
 )
 
 func main() {
@@ -18,6 +20,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ShareX Backend Running"))
 	})
+
+	mux.HandleFunc("/health", handlers.HealthHandler)
 
 	log.Printf("Server running on port %s\n", port)
 
