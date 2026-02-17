@@ -15,6 +15,11 @@ func main() {
 		port = "8080"
 	}
 
+	err := os.MkdirAll("uploads", os.ModePerm)
+	if err != nil {
+		log.Fatal("Failed to create uploads directory:", err)
+	}
+
 	database.Connect()
 
 	mux := http.NewServeMux()
