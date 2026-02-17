@@ -26,6 +26,8 @@ func main() {
 
 	mux.HandleFunc("/health", handlers.HealthHandler)
 
+	mux.HandleFunc("/upload", handlers.UploadHandler)
+
 	log.Printf("Server running on port %s\n", port)
 
 	err := http.ListenAndServe(":"+port, mux)
