@@ -33,9 +33,11 @@ func main() {
 
 	mux.HandleFunc("/upload", handlers.UploadHandler)
 
+	mux.HandleFunc("/download/", handlers.DownloadHandler)
+
 	log.Printf("Server running on port %s\n", port)
 
-	err := http.ListenAndServe(":"+port, mux)
+	err = http.ListenAndServe(":"+port, mux)
 	if err != nil {
 		log.Fatal(err)
 	}
