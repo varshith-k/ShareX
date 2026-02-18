@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"sharex-backend/internal/repository"
+	"sharex-backend/internal/database"
+
 )
 
 func MetadataHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,8 +20,14 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) {
 
 	token := parts[2]
 
-	repo := repository.FileRepository{}
-	file, err := repo.GetByToken(token)
+	if database.DB == nil {
+	http.Error(w, "Database not initialized", http.StatusInternalServerError)
+	return
+}
+
+repo := repository.FileRepository{}
+file, err := repo.GetByToken(token)
+
 	if err != nil {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
