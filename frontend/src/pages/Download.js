@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 
 function Download() {
-  const [code, setCode] = useState("");
+  const { token } = useParams(); // dynamic route support
+
+  const [code, setCode] = useState(token || "");
   const [fileInfo, setFileInfo] = useState(null);
   const [status, setStatus] = useState("");
 
-  const handleFetch = async () => {
-    if (!code.trim()) {
+  const fetchFile = async (fileCode) => {
+    if (!fileCode.trim()) {
       setStatus("Enter a file code.");
       return;
     }
@@ -15,7 +18,9 @@ function Download() {
     try {
       setStatus("Fetching file info...");
 
-      const res = await axios.get(`http://localhost:8080/file/${code}`);
+      const res = await axios.get(
+        `http://localhost:8080/file/${fileCode}`
+      );
 
       setFileInfo(res.data);
       setStatus("File found!");
@@ -25,30 +30,62 @@ function Download() {
     }
   };
 
+  // Auto fetch if token exists in URL
+  useEffect(() => {
+    if (token) {
+      fetchFile(token);
+    }
+  }, [token]);
+
+  const handleDownload = () => {
+    if (!code) return;
+    window.location.href = `http://localhost:8080/file/${code}/download`;
+  };
+
   return (
     <div style={styles.container}>
       <h2>Download File</h2>
 
       <div style={styles.card}>
-        <input
-          type="text"
-          placeholder="Enter file code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          style={styles.input}
-        />
+        {!token && (
+          <>
+            <input
+              type="text"
+              placeholder="Enter file code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              style={styles.input}
+            />
 
-        <button onClick={handleFetch} style={styles.button}>
-          Fetch File Info
-        </button>
+            <button
+              onClick={() => fetchFile(code)}
+              style={styles.button}
+            >
+              Fetch File Info
+            </button>
+          </>
+        )}
 
         {status && <p style={styles.status}>{status}</p>}
 
         {fileInfo && (
           <div style={styles.meta}>
-            <p><b>Name:</b> {fileInfo.name}</p>
-            <p><b>Size:</b> {fileInfo.size} KB</p>
-            <p><b>Uploaded:</b> {fileInfo.createdAt}</p>
+            <p>
+              <b>Name:</b> {fileInfo.name}
+            </p>
+            <p>
+              <b>Size:</b> {fileInfo.size} KB
+            </p>
+            <p>
+              <b>Uploaded:</b> {fileInfo.createdAt}
+            </p>
+
+            <button
+              onClick={handleDownload}
+              style={styles.downloadButton}
+            >
+              Download File
+            </button>
           </div>
         )}
       </div>
@@ -57,7 +94,7 @@ function Download() {
 }
 
 const styles = {
-  container: { maxWidth: "600px", margin: "0 auto" },
+  container: { maxWidth: "600px", margin: "40px auto" },
   card: {
     marginTop: "20px",
     padding: "28px",
@@ -80,13 +117,22 @@ const styles = {
     borderRadius: "6px",
     cursor: "pointer",
   },
+  downloadButton: {
+    marginTop: "16px",
+    padding: "10px 18px",
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+  },
   meta: {
     marginTop: "16px",
     background: "#f9fafb",
     padding: "12px",
-    borderRadius: "6px"
+    borderRadius: "6px",
   },
-  status: { marginTop: "14px", fontWeight: "500" }
+  status: { marginTop: "14px", fontWeight: "500" },
 };
 
 export default Download;
