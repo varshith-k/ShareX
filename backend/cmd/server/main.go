@@ -35,6 +35,9 @@ func main() {
 
 	mux.HandleFunc("/download/", handlers.DownloadHandler)
 
+	mux.HandleFunc("/file/", handlers.MetadataHandler)
+
+
 	log.Printf("Server running on port %s\n", port)
 
 	err = http.ListenAndServe(":"+port, mux)
