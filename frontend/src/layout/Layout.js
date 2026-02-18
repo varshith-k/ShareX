@@ -1,12 +1,10 @@
-import Navbar from "../components/Navbar";
+import Navbar from '../components/Navbar';
 
 function Layout({ children }) {
   return (
     <div>
       <Navbar />
-      <main style={{ padding: "20px" }}>
-        {children}
-      </main>
+      <main style={{ padding: '20px' }}>{children}</main>
     </div>
   );
 }
