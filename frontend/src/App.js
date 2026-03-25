@@ -1,40 +1,78 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Link, Route, Routes } from 'react-router-dom';
+import Download from './pages/Download';
 import DownloadPage from './pages/DownloadPage';
+import Home from './pages/Home';
+import Upload from './pages/Upload';
 
 function App() {
   return (
     <Router>
-      <div className="App">
-        {/* Navigation Bar for testing purposes */}
-        <nav style={{ padding: '15px', background: '#282c34', color: 'white', display: 'flex', gap: '20px' }}>
-          <Link to="/" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>ShareX Home</Link>
-          <Link to="/download/sample-file-123" style={{ color: '#61dafb', textDecoration: 'none' }}>Test Download Link</Link>
-        </nav>
+      <div className="app-shell">
+        <header style={styles.header}>
+          <div>
+            <p style={styles.eyebrow}>Sprint 2 Working Model</p>
+            <h1 style={styles.title}>ShareX File Sharing</h1>
+          </div>
+
+          <nav style={styles.nav}>
+            <Link to="/" style={styles.primaryLink}>Home</Link>
+            <Link to="/upload" style={styles.link}>Share a file</Link>
+            <Link to="/download" style={styles.link}>Find a file</Link>
+          </nav>
+        </header>
 
         <Routes>
-          {/* Home Page Route */}
-          <Route path="/" element={
-            <div style={{ textAlign: 'center', marginTop: '50px' }}>
-              <h1>ShareX Dashboard</h1>
-              <p>Hello Harshini, your environment is ready. Click the "Test Download Link" above to verify the route.</p>
-            </div>
-          } />
-
-          {/* FE2-11: Dynamic route for the download page using :token */}
+          <Route path="/" element={<Home />} />
+          <Route path="/upload" element={<Upload />} />
+          <Route path="/download" element={<Download />} />
           <Route path="/download/:token" element={<DownloadPage />} />
-
-          {/* Catch-all for 404 - Not Found */}
-          <Route path="*" element={
-            <div style={{ textAlign: 'center', marginTop: '50px' }}>
-              <h2>404 - Page Not Found</h2>
-              <Link to="/">Go back home</Link>
-            </div>
-          } />
+          <Route path="*" element={<Home />} />
         </Routes>
       </div>
     </Router>
   );
 }
+
+const styles = {
+  header: {
+    alignItems: 'center',
+    background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)',
+    color: '#fff',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '16px',
+    justifyContent: 'space-between',
+    padding: '24px 32px',
+  },
+  eyebrow: {
+    fontSize: '0.8rem',
+    letterSpacing: '0.08em',
+    margin: 0,
+    opacity: 0.8,
+    textTransform: 'uppercase',
+  },
+  title: {
+    margin: '6px 0 0',
+  },
+  nav: {
+    display: 'flex',
+    gap: '12px',
+  },
+  link: {
+    background: 'rgba(255,255,255,0.12)',
+    borderRadius: '999px',
+    color: '#fff',
+    padding: '10px 16px',
+    textDecoration: 'none',
+  },
+  primaryLink: {
+    background: '#fff',
+    borderRadius: '999px',
+    color: '#0f172a',
+    padding: '10px 16px',
+    textDecoration: 'none',
+  },
+};
 
 export default App;
