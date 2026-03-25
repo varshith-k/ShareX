@@ -15,9 +15,16 @@ func main() {
 		port = "8080"
 	}
 
-	err := os.MkdirAll("uploads", os.ModePerm)
-	if err != nil {
-		log.Fatal("Failed to create uploads directory:", err)
+	uploadsDir := "uploads"
+	if _, err := os.Stat(uploadsDir); os.IsNotExist(err) {
+		if mkErr := os.MkdirAll(uploadsDir, os.ModePerm); mkErr != nil {
+			log.Fatalf("Failed to create uploads directory: %v", mkErr)
+		}
+		log.Println("Created uploads directory")
+	} else if err != nil {
+		log.Fatalf("Error checking uploads directory: %v", err)
+	} else {
+		log.Println("Uploads directory already exists")
 	}
 
 	database.Connect()
@@ -37,11 +44,9 @@ func main() {
 
 	mux.HandleFunc("/file/", handlers.MetadataHandler)
 
-
 	log.Printf("Server running on port %s\n", port)
 
-	err = http.ListenAndServe(":"+port, mux)
-	if err != nil {
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)
 	}
 }

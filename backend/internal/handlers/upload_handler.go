@@ -12,34 +12,53 @@ import (
 	"sharex-backend/internal/utils"
 )
 
+const MaxUploadSize = 10 << 20 // 10MB
+
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // 10MB
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+
+	err := r.ParseMultipartForm(MaxUploadSize)
 	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "File exceeds maximum allowed size of 10MB"})
 		return
 	}
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "File not found", http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "File not found in request"})
 		return
 	}
 	defer file.Close()
 
+	if handler.Size == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "File is empty"})
+		return
+	}
+
 	token := utils.GenerateToken()
 
-	filepath := filepath.Join("uploads", token+"_"+handler.Filename)
+	fp := filepath.Join("uploads", token+"_"+handler.Filename)
 
-	dst, err := os.Create(filepath)
+	dst, err := os.Create(fp)
 	if err != nil {
-		http.Error(w, "Unable to save file", http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Unable to save file"})
 		return
 	}
 	defer dst.Close()
 
 	size, err := io.Copy(dst, file)
 	if err != nil {
-		http.Error(w, "Error saving file", http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Error saving file"})
 		return
 	}
 
@@ -47,22 +66,25 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	newFile := models.File{
 		Filename: handler.Filename,
-		Filepath: filepath,
+		Filepath: fp,
 		Token:    token,
 		Size:     size,
 	}
 
 	err = repo.Create(&newFile)
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Database error"})
 		return
 	}
 
-	response := map[string]string{
-		"message": "File uploaded successfully",
-		"token":   token,
-	}
+	downloadURL := "/download/" + token
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":     "File uploaded successfully",
+		"token":       token,
+		"downloadUrl": downloadURL,
+	})
 }
