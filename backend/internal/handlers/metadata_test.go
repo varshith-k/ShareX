@@ -2,24 +2,19 @@ package handlers
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"sharex-backend/internal/database"
+	"sharex-backend/internal/utils"
 )
 
 func TestMetadataHandler_InvalidToken(t *testing.T) {
-	// Skip if DB not initialized (prevents crash)
 	if database.DB == nil {
 		t.Skip("Skipping test because database is not initialized")
 	}
 
-	req, err := http.NewRequest("GET", "/file/invalid-token", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
+	req := utils.CreateTestRequest("GET", "/file/invalid-token")
+	rr := utils.CreateTestRecorder()
 
 	handler := http.HandlerFunc(MetadataHandler)
 	handler.ServeHTTP(rr, req)
@@ -34,17 +29,12 @@ func TestMetadataHandler_InvalidToken(t *testing.T) {
 }
 
 func TestMetadataHandler_Success(t *testing.T) {
-	// 🔥 Prevent crash if DB not initialized
 	if database.DB == nil {
 		t.Skip("Skipping test because database is not initialized")
 	}
 
-	req, err := http.NewRequest("GET", "/file/test-token", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	rr := httptest.NewRecorder()
+	req := utils.CreateTestRequest("GET", "/file/test-token")
+	rr := utils.CreateTestRecorder()
 
 	handler := http.HandlerFunc(MetadataHandler)
 	handler.ServeHTTP(rr, req)
