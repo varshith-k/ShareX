@@ -45,9 +45,9 @@ const DownloadPage = () => {
         return (
             <div style={styles.container}>
                 <div style={{ ...styles.card, borderColor: '#ffcccc' }}>
-                    <h2 style={{ color: '#d9534f' }}>Error</h2>
+                    <h2 style={{ color: '#d9534f' }}>File Not Found</h2>
                     <p>{error}</p>
-                    <Link to="/" style={styles.backBtn}>Return Home</Link>
+                    <Link to="/" style={styles.backBtn}>Back to Home</Link>
                 </div>
             </div>
         );
@@ -56,13 +56,9 @@ const DownloadPage = () => {
     return (
         <div style={styles.container}>
             <div style={styles.card}>
-                <div style={styles.icon}>📂</div>
+                <div style={styles.icon} aria-hidden="true">File</div>
                 <h2>{metadata?.filename}</h2>
                 <p style={{ color: '#666' }}>Size: {(metadata?.size / 1024).toFixed(2)} KB</p>
-                
-                {/* FE2-15 Implementation: 
-                    The button uses the helper to hit the backend download stream.
-                */}
                 <button 
                     onClick={handleDownload}
                     style={styles.downloadBtn}
@@ -94,7 +90,18 @@ const styles = {
         textAlign: 'center',
         width: '350px'
     },
-    icon: { fontSize: '48px', marginBottom: '10px' },
+    icon: {
+        backgroundColor: '#dbeafe',
+        borderRadius: '999px',
+        color: '#1d4ed8',
+        display: 'inline-flex',
+        fontSize: '14px',
+        fontWeight: 'bold',
+        justifyContent: 'center',
+        margin: '0 auto 10px',
+        padding: '16px 18px',
+        textTransform: 'uppercase',
+    },
     spinner: {
         width: '40px',
         height: '40px',

@@ -1,27 +1,50 @@
-import { render, screen } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import Upload from "./Upload";
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import Upload from './Upload';
+import * as api from '../services/api';
 
-test("renders upload page", () => {
-  render(<Upload />);
+jest.mock('../services/api');
 
-  const heading = screen.getByText(/Upload File/i);
-  expect(heading).toBeInTheDocument();
-});
+describe('Upload page', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-test("renders upload button", () => {
-  render(<Upload />);
+  test('shows validation message when no file is selected', async () => {
+    render(
+      <MemoryRouter>
+        <Upload />
+      </MemoryRouter>
+    );
 
-  const button = screen.getByRole("button", { name: /upload/i });
-  expect(button).toBeInTheDocument();
-});
+    fireEvent.click(screen.getByRole('button', { name: /upload/i }));
 
-test("shows success message after upload", async () => {
-  render(<Upload />);
+    expect(await screen.findByText(/Please select a file first/i)).toBeInTheDocument();
+  });
 
-  // mock success state manually (or simulate)
-  const successText = "Upload successful";
+  test('uploads a file and shows the returned token', async () => {
+    api.uploadFile.mockResolvedValueOnce({
+      downloadUrl: '/download/test-token',
+      token: 'test-token',
+    });
 
-  // just check presence (basic version is fine)
-  expect(successText).toBeDefined();
+    render(
+      <MemoryRouter>
+        <Upload />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByLabelText(/Choose file/i);
+    const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
+
+    fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() => {
+      expect(api.uploadFile).toHaveBeenCalledWith(file);
+    });
+
+    expect(await screen.findByText(/Upload successful/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /http:\/\/localhost\/download\/test-token/i })).toBeInTheDocument();
+  });
 });

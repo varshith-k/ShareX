@@ -1,52 +1,56 @@
-import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { fetchFileMetadata } from '../services/api';
 
 function Download() {
-  const { token } = useParams(); // dynamic route support
+  const { token } = useParams();
+  const navigate = useNavigate();
 
-  const [code, setCode] = useState(token || "");
+  const [code, setCode] = useState(token || '');
   const [fileInfo, setFileInfo] = useState(null);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState('');
 
   const fetchFile = async (fileCode) => {
     if (!fileCode.trim()) {
-      setStatus("Enter a file code.");
+      setStatus('Enter a file code.');
+      setFileInfo(null);
       return;
     }
 
     try {
-      setStatus("Fetching file info...");
-
-      const res = await axios.get(
-        `http://localhost:8080/file/${fileCode}`
-      );
-
-      setFileInfo(res.data);
-      setStatus("File found!");
-    } catch (err) {
+      setStatus('Fetching file info...');
+      const data = await fetchFileMetadata(fileCode);
+      setFileInfo(data);
+      setStatus('File found. Open the detail page to download it.');
+    } catch (error) {
       setFileInfo(null);
-      setStatus("File not found or backend not ready.");
+      setStatus(error.message || 'File not found or backend not ready.');
     }
   };
 
-  // Auto fetch if token exists in URL
   useEffect(() => {
     if (token) {
       fetchFile(token);
     }
   }, [token]);
 
-  const handleDownload = () => {
-    if (!code) return;
-    window.location.href = `http://localhost:8080/file/${code}/download`;
+  const handleOpenDownload = () => {
+    if (!code.trim()) {
+      setStatus('Enter a file code.');
+      return;
+    }
+
+    navigate(`/download/${code.trim()}`);
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Download File</h2>
+    <main style={styles.container}>
+      <section style={styles.card}>
+        <div>
+          <p style={styles.kicker}>Download lookup</p>
+          <h2>Find a shared file</h2>
+        </div>
 
-      <div style={styles.card}>
         {!token && (
           <>
             <input
@@ -57,10 +61,7 @@ function Download() {
               style={styles.input}
             />
 
-            <button
-              onClick={() => fetchFile(code)}
-              style={styles.button}
-            >
+            <button onClick={() => fetchFile(code)} style={styles.button}>
               Fetch File Info
             </button>
           </>
@@ -71,68 +72,83 @@ function Download() {
         {fileInfo && (
           <div style={styles.meta}>
             <p>
-              <b>Name:</b> {fileInfo.name}
+              <b>Name:</b> {fileInfo.filename}
             </p>
             <p>
-              <b>Size:</b> {fileInfo.size} KB
+              <b>Size:</b> {fileInfo.size} bytes
             </p>
             <p>
               <b>Uploaded:</b> {fileInfo.createdAt}
             </p>
 
-            <button
-              onClick={handleDownload}
-              style={styles.downloadButton}
-            >
-              Download File
+            <button onClick={handleOpenDownload} style={styles.downloadButton}>
+              Open Download Page
             </button>
+            <p style={styles.inlineLinkRow}>
+              <Link to={`/download/${fileInfo.token}`}>Go directly to /download/{fileInfo.token}</Link>
+            </p>
           </div>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 
 const styles = {
-  container: { maxWidth: "600px", margin: "40px auto" },
+  container: { margin: '40px auto', maxWidth: '680px', padding: '0 24px 56px' },
   card: {
-    marginTop: "20px",
-    padding: "28px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-    background: "#ffffff",
+    background: '#ffffff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '18px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    display: 'grid',
+    gap: '16px',
+    marginTop: '20px',
+    padding: '28px',
+  },
+  kicker: {
+    color: '#16a34a',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    margin: 0,
+    textTransform: 'uppercase',
   },
   input: {
-    padding: "10px",
-    width: "100%",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
+    border: '1px solid #ccc',
+    borderRadius: '6px',
+    padding: '10px',
+    width: '100%',
   },
   button: {
-    marginTop: "16px",
-    padding: "10px 18px",
-    background: "#16a34a",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
+    background: '#16a34a',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    cursor: 'pointer',
+    marginTop: '16px',
+    padding: '10px 18px',
   },
   downloadButton: {
-    marginTop: "16px",
-    padding: "10px 18px",
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
+    background: '#2563eb',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    cursor: 'pointer',
+    marginTop: '16px',
+    padding: '10px 18px',
   },
   meta: {
-    marginTop: "16px",
-    background: "#f9fafb",
-    padding: "12px",
-    borderRadius: "6px",
+    background: '#f9fafb',
+    borderRadius: '6px',
+    marginTop: '16px',
+    padding: '12px',
   },
-  status: { marginTop: "14px", fontWeight: "500" },
+  inlineLinkRow: {
+    marginBottom: 0,
+    marginTop: '12px',
+  },
+  status: { fontWeight: '500', marginTop: '14px' },
 };
 
 export default Download;
