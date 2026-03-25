@@ -16,8 +16,7 @@ const DownloadPage = () => {
                 setMetadata(data);
                 setError(null);
             } catch (err) {
-                // Specific error handling for 404 or network issues
-                setError("The file link is invalid or has expired. Please check the URL and try again.");
+                setError("The file link is invalid or has expired.");
             } finally {
                 setLoading(false);
             }
@@ -28,46 +27,50 @@ const DownloadPage = () => {
         }
     }, [token]);
 
-    // 1. LOADING STATE
+    // Function to handle the download click explicitly if needed
+    const handleDownload = () => {
+        window.location.href = getDownloadUrl(token);
+    };
+
     if (loading) {
         return (
             <div style={styles.container}>
                 <div style={styles.spinner}></div>
-                <p style={{ marginTop: '10px', color: '#666' }}>Fetching file details...</p>
+                <p>Loading file details...</p>
             </div>
         );
     }
 
-    // 2. ERROR STATE (404 / Invalid Token)
     if (error) {
         return (
             <div style={styles.container}>
-                <div style={{ ...styles.card, borderColor: '#ffcccc', backgroundColor: '#fff5f5' }}>
-                    <h2 style={{ color: '#d9534f' }}>File Not Found</h2>
+                <div style={{ ...styles.card, borderColor: '#ffcccc' }}>
+                    <h2 style={{ color: '#d9534f' }}>Error</h2>
                     <p>{error}</p>
-                    <Link to="/" style={styles.backBtn}>Back to Home</Link>
+                    <Link to="/" style={styles.backBtn}>Return Home</Link>
                 </div>
             </div>
         );
     }
 
-    // 3. SUCCESS STATE
     return (
         <div style={styles.container}>
-            <h1 style={styles.title}>File Ready for Download</h1>
             <div style={styles.card}>
-                <div style={styles.fileIcon}>📄</div>
-                <h3 style={{ margin: '10px 0' }}>{metadata?.filename}</h3>
+                <div style={styles.icon}>📂</div>
+                <h2>{metadata?.filename}</h2>
                 <p style={{ color: '#666' }}>Size: {(metadata?.size / 1024).toFixed(2)} KB</p>
                 
-                <a 
-                    href={getDownloadUrl(token)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
+                {/* FE2-15 Implementation: 
+                    The button uses the helper to hit the backend download stream.
+                */}
+                <button 
+                    onClick={handleDownload}
                     style={styles.downloadBtn}
                 >
                     Download Now
-                </a>
+                </button>
+                
+                <p style={styles.footerText}>Securely hosted by ShareX</p>
             </div>
         </div>
     );
@@ -80,48 +83,40 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         height: '80vh',
-        fontFamily: 'Segoe UI, Tahoma, sans-serif',
-        backgroundColor: '#f4f7f6'
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#f8f9fa'
     },
     card: {
         padding: '40px',
-        border: '1px solid #ddd',
-        borderRadius: '16px',
+        borderRadius: '12px',
         backgroundColor: '#fff',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+        boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
         textAlign: 'center',
-        width: '100%',
-        maxWidth: '400px'
+        width: '350px'
     },
+    icon: { fontSize: '48px', marginBottom: '10px' },
     spinner: {
         width: '40px',
         height: '40px',
         border: '4px solid #f3f3f3',
-        borderTop: '4px solid #3498db',
+        borderTop: '4px solid #007bff',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
     },
-    fileIcon: {
-        fontSize: '50px',
-        marginBottom: '10px'
-    },
     downloadBtn: {
-        display: 'block',
-        marginTop: '25px',
+        width: '100%',
         padding: '12px',
-        backgroundColor: '#28a745',
+        backgroundColor: '#007bff',
         color: 'white',
-        textDecoration: 'none',
-        borderRadius: '8px',
+        border: 'none',
+        borderRadius: '6px',
+        fontSize: '16px',
         fontWeight: 'bold',
-        transition: 'background 0.3s'
+        cursor: 'pointer',
+        marginTop: '20px'
     },
-    backBtn: {
-        display: 'inline-block',
-        marginTop: '15px',
-        color: '#007bff',
-        textDecoration: 'none'
-    }
+    backBtn: { color: '#007bff', textDecoration: 'none', marginTop: '10px', display: 'block' },
+    footerText: { fontSize: '12px', color: '#aaa', marginTop: '20px' }
 };
 
 export default DownloadPage;
