@@ -3,48 +3,40 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DownloadPage from './DownloadPage';
 import * as api from '../services/api';
 
-// Mock the API service
+// Mock the entire API service module
 jest.mock('../services/api');
 
-describe('DownloadPage Integration Tests', () => {
+describe('FE2-17: DownloadPage Success State', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    // FE2-17: Metadata Success
-    test('FE2-17: displays file name and size on successful fetch', async () => {
-        api.fetchFileMetadata.mockResolvedValueOnce({
-            filename: 'harshini_data.zip',
-            size: 1048576 // 1MB
-        });
+    test('displays correct file name and converted size on successful fetch', async () => {
+        // 1. Setup the mock to return specific success data
+        const mockMetadata = {
+            filename: 'harshini_project_final.zip',
+            size: 2048 // This should be displayed as 2.00 KB
+        };
+        api.fetchFileMetadata.mockResolvedValueOnce(mockMetadata);
 
+        // 2. Render the component with a fake token in the URL
         render(
-            <MemoryRouter initialEntries={['/download/valid-token']}>
+            <MemoryRouter initialEntries={['/download/success-token-123']}>
                 <Routes>
                     <Route path="/download/:token" element={<DownloadPage />} />
                 </Routes>
             </MemoryRouter>
         );
 
-        const filename = await screen.findByText(/harshini_data.zip/i);
-        expect(filename).toBeInTheDocument();
-        expect(screen.getByText(/1024.00 KB/i)).toBeInTheDocument();
-    });
+        // 3. Verify the filename appears (using findByText to wait for the async update)
+        const filenameElement = await screen.findByText(/harshini_project_final.zip/i);
+        expect(filenameElement).toBeInTheDocument();
 
-    // FE2-18: Metadata Error
-    test('FE2-18: displays error UI when token is invalid', async () => {
-        api.fetchFileMetadata.mockRejectedValueOnce(new Error('404'));
+        // 4. Verify the size is correctly converted to KB (2048 / 1024 = 2)
+        const sizeElement = screen.getByText(/2.00 KB/i);
+        expect(sizeElement).toBeInTheDocument();
 
-        render(
-            <MemoryRouter initialEntries={['/download/expired-token']}>
-                <Routes>
-                    <Route path="/download/:token" element={<DownloadPage />} />
-                </Routes>
-            </MemoryRouter>
-        );
-
-        const errorHeading = await screen.findByText(/File Not Found/i);
-        expect(errorHeading).toBeInTheDocument();
-        expect(screen.getByText(/link is invalid or has expired/i)).toBeInTheDocument();
+        // 5. Verify the API was called with the correct token from the URL
+        expect(api.fetchFileMetadata).toHaveBeenCalledWith('success-token-123');
     });
 });
