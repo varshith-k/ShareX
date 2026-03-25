@@ -1,35 +1,54 @@
 import { useState } from "react";
-import axios from "axios";
+import { api } from "../services/api";
 
 function Upload() {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(""); 
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleUpload = async () => {
+    if (isUploading) return;
+    setIsUploading(true);
     if (!file) {
-      setStatus("Please select a file first.");
+      setError("Please select a file before uploading");
+      setIsUploading(false);
+      return;
+    }
+    if (file && file.size > 5 * 1024 * 1024) {
+      setError("File size should be less than 5MB");
+      setIsUploading(false);
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
       setStatus("Uploading...");
+      setResult(null);
+      setProgress(0);
+      setError(""); // ✅ clear error
 
-      await axios.post("http://localhost:8080/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (event) => {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgress(percent);
-        },
-      });
+      // simulate progress (since fetch doesn't support it)
+      let fakeProgress = 0;
+      const interval = setInterval(() => {
+        fakeProgress += 10;
+        if (fakeProgress <= 90) setProgress(fakeProgress);
+      }, 200);
 
-      setStatus("Upload successful!");
-    } catch (error) {
-      setStatus("Upload failed. Backend may not be ready yet.");
-    }
+      const data = await api.uploadFile(file);
+
+      clearInterval(interval);
+      setProgress(100);
+
+      setResult(data);
+      setStatus("");
+      setIsUploading(false);
+    } catch (err) {
+        setStatus(err.message || "Upload failed");
+        setProgress(0);
+        setIsUploading(false);
+      }
   };
 
   return (
@@ -37,19 +56,61 @@ function Upload() {
       <h2>Upload File</h2>
 
       <div style={styles.card}>
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
 
-        <button onClick={handleUpload} style={styles.button}>
+        <button
+          onClick={handleUpload}
+          style={styles.button}
+          disabled={!file || isUploading}
+        >
           Upload
         </button>
 
         {progress > 0 && (
           <div style={styles.progressBar}>
-            <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+            <div
+              style={{
+                ...styles.progressFill,
+                width: `${progress}%`,
+              }}
+            />
           </div>
         )}
 
         {status && <p style={styles.status}>{status}</p>}
+
+        {/* ✅ Error message */}
+        {error && (
+          <p style={{ color: "red", marginTop: "10px" }}>
+            {error}
+          </p>
+        )}
+
+        {/* ✅ Success UI */}
+        {result && (
+          <div style={{ marginTop: "16px" }}>
+            <p style={{ color: "green", fontWeight: "600" }}>
+              Upload successful!
+            </p>
+
+            <p>Token: {result.token}</p>
+
+            <a
+              href={result.downloadUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                color: "#2563eb",
+                textDecoration: "underline",
+              }}
+            >
+              Download File
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
