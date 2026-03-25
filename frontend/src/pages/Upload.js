@@ -6,11 +6,15 @@ function Upload() {
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState(""); // ✅ new state
+  const [error, setError] = useState(""); 
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleUpload = async () => {
+    if (isUploading) return;
+    setIsUploading(true);
     if (!file) {
-      setError("Please select a file before uploading"); // ✅ error handling
+      setError("Please select a file before uploading");
+      setIsUploading(false);
       return;
     }
 
@@ -34,10 +38,12 @@ function Upload() {
 
       setResult(data);
       setStatus("");
+      setIsUploading(false);
     } catch (err) {
-      setStatus(err.message || "Upload failed");
-      setProgress(0);
-    }
+        setStatus(err.message || "Upload failed");
+        setProgress(0);
+        setIsUploading(false);
+      }
   };
 
   return (
@@ -53,7 +59,7 @@ function Upload() {
         <button
           onClick={handleUpload}
           style={styles.button}
-          disabled={!file} // ✅ disable when no file
+          disabled={!file || isUploading}
         >
           Upload
         </button>
