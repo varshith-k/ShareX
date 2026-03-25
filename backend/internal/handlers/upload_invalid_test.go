@@ -1,4 +1,3 @@
-package internal
 package handlers
 
 import (
