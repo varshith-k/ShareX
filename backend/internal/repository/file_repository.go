@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"time"
 
 	"sharex-backend/internal/database"
@@ -10,7 +12,26 @@ import (
 
 type FileRepository struct{}
 
+var (
+	inMemoryFiles  = map[string]*models.File{}
+	inMemoryMu     sync.RWMutex
+	nextInMemoryID = 1
+)
+
 func (r *FileRepository) Create(file *models.File) error {
+	if database.DB == nil {
+		inMemoryMu.Lock()
+		defer inMemoryMu.Unlock()
+
+		file.ID = nextInMemoryID
+		nextInMemoryID++
+		file.CreatedAt = time.Now().UTC()
+
+		fileCopy := *file
+		inMemoryFiles[file.Token] = &fileCopy
+		return nil
+	}
+
 	query := `
 	INSERT INTO files (filename, filepath, token, size)
 	VALUES ($1, $2, $3, $4)
@@ -29,6 +50,19 @@ func (r *FileRepository) Create(file *models.File) error {
 }
 
 func (r *FileRepository) GetByToken(token string) (*models.File, error) {
+	if database.DB == nil {
+		inMemoryMu.RLock()
+		defer inMemoryMu.RUnlock()
+
+		file, ok := inMemoryFiles[token]
+		if !ok {
+			return nil, errors.New("file not found")
+		}
+
+		fileCopy := *file
+		return &fileCopy, nil
+	}
+
 	query := `
 	SELECT id, filename, filepath, token, size, created_at
 	FROM files
@@ -54,4 +88,12 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	}
 
 	return &file, nil
+}
+
+func ResetInMemoryStore() {
+	inMemoryMu.Lock()
+	defer inMemoryMu.Unlock()
+
+	inMemoryFiles = map[string]*models.File{}
+	nextInMemoryID = 1
 }

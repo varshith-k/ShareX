@@ -23,12 +23,6 @@ func TestDownloadHandler_EmptyToken(t *testing.T) {
 }
 
 func TestDownloadHandler_TokenNotInDB(t *testing.T) {
-	defer func() {
-		if r := recover(); r != nil {
-			t.Log("Handler panicked as expected when DB is nil — skipping")
-		}
-	}()
-
 	req, err := http.NewRequest("GET", "/download/nonexistenttoken", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +33,7 @@ func TestDownloadHandler_TokenNotInDB(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNotFound && rr.Code != http.StatusInternalServerError {
-		t.Errorf("Expected 404 or 500, got %v", rr.Code)
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("Expected 404, got %v", rr.Code)
 	}
 }

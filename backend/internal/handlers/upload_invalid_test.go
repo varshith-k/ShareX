@@ -20,8 +20,8 @@ func TestUploadHandler_WrongMethod(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusBadRequest {
-		t.Errorf("Expected status 400, got %v", rr.Code)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("Expected status 405, got %v", rr.Code)
 	}
 }
 
