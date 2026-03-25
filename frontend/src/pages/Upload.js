@@ -17,6 +17,11 @@ function Upload() {
       setIsUploading(false);
       return;
     }
+    if (file && file.size > 5 * 1024 * 1024) {
+      setError("File size should be less than 5MB");
+      setIsUploading(false);
+      return;
+    }
 
     try {
       setStatus("Uploading...");
