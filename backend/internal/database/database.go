@@ -14,7 +14,8 @@ var DB *pgxpool.Pool
 func Connect() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		log.Fatal("DATABASE_URL environment variable not set")
+		log.Println("DATABASE_URL not set; running with in-memory metadata storage")
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -22,11 +23,15 @@ func Connect() {
 
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v", err)
+		log.Printf("Unable to create connection pool: %v", err)
+		log.Println("Falling back to in-memory metadata storage")
+		return
 	}
 
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("Unable to connect to database: %v", err)
+		log.Printf("Unable to connect to database: %v", err)
+		log.Println("Falling back to in-memory metadata storage")
+		return
 	}
 
 	DB = pool

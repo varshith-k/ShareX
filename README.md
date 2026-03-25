@@ -53,7 +53,7 @@ ShareX/
 ````
 
 ### 🔹 Frontend
-- Built using Vite + React
+- Built using Create React App + React
 - Uses React Router for navigation
 - Communicates with backend via REST APIs
 - Handles file upload and download UI
@@ -166,7 +166,7 @@ go run ./cmd/server
 ```bash
 cd frontend
 npm install
-npm run dev
+npm start
 ```
 
 

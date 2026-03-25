@@ -4,11 +4,17 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sharex-backend/internal/utils" 
+
 	"sharex-backend/internal/repository"
+	"sharex-backend/internal/utils"
 )
 
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	token := strings.TrimPrefix(r.URL.Path, "/download/")
 	token = strings.TrimSpace(token)
 

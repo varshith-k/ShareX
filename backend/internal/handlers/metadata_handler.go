@@ -4,12 +4,22 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"sharex-backend/internal/utils"
+
 	"sharex-backend/internal/repository"
+	"sharex-backend/internal/utils"
 )
 
 func MetadataHandler(w http.ResponseWriter, r *http.Request) {
-	token := strings.TrimPrefix(r.URL.Path, "/file/")
+	if r.Method != http.MethodGet {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	token := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/file/"))
+	if token == "" || strings.Contains(token, "/") {
+		utils.WriteJSONError(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
 
 	repo := &repository.FileRepository{}
 

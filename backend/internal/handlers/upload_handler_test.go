@@ -2,13 +2,20 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"sharex-backend/internal/repository"
 )
 
 func TestUploadHandler_MissingFile(t *testing.T) {
+	repository.ResetInMemoryStore()
+
 	req, err := http.NewRequest("POST", "/upload", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -25,6 +32,8 @@ func TestUploadHandler_MissingFile(t *testing.T) {
 }
 
 func TestUploadHandler_EmptyFile(t *testing.T) {
+	repository.ResetInMemoryStore()
+
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	_, err := writer.CreateFormFile("file", "empty.txt")
@@ -49,7 +58,12 @@ func TestUploadHandler_EmptyFile(t *testing.T) {
 	}
 }
 
-func TestUploadHandler_ValidFile_DBNotInitialized(t *testing.T) {
+func TestUploadHandler_ValidFile(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Cleanup(func() {
+		os.RemoveAll("uploads")
+	})
+
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	fw, err := writer.CreateFormFile("file", "test.txt")
@@ -70,8 +84,33 @@ func TestUploadHandler_ValidFile_DBNotInitialized(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 
-	// Without DB, expect 500 — confirms handler reaches DB step
-	if rr.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status 500, got %v", rr.Code)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %v", rr.Code)
+	}
+
+	var response map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Expected valid JSON response: %v", err)
+	}
+
+	if response["token"] == "" {
+		t.Fatalf("Expected token in response")
+	}
+
+	if response["downloadUrl"] == "" {
+		t.Fatalf("Expected download URL in response")
+	}
+
+	fileMeta, err := (&repository.FileRepository{}).GetByToken(response["token"])
+	if err != nil {
+		t.Fatalf("Expected file metadata to be saved: %v", err)
+	}
+
+	if fileMeta.Filename != "test.txt" {
+		t.Fatalf("Expected filename test.txt, got %s", fileMeta.Filename)
+	}
+
+	if _, err := os.Stat(filepath.Clean(fileMeta.Filepath)); err != nil {
+		t.Fatalf("Expected uploaded file to exist on disk: %v", err)
 	}
 }

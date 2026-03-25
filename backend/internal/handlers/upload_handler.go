@@ -15,6 +15,11 @@ import (
 const MaxUploadSize = 10 << 20 // 10MB
 
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
 
 	err := r.ParseMultipartForm(MaxUploadSize)
@@ -37,7 +42,13 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	token := utils.GenerateToken()
 
-	fp := filepath.Join("uploads", token+"_"+handler.Filename)
+	uploadsDir := "uploads"
+	if err := os.MkdirAll(uploadsDir, os.ModePerm); err != nil {
+		utils.WriteJSONError(w, "Unable to prepare upload directory", http.StatusInternalServerError)
+		return
+	}
+
+	fp := filepath.Join(uploadsDir, token+"_"+handler.Filename)
 
 	dst, err := os.Create(fp)
 	if err != nil {
