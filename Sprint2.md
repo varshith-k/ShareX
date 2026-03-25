@@ -120,3 +120,66 @@ Test Utilities:
 Notes:
 - Database-dependent tests are safely skipped when DB is not initialized
 - Ensures stable test execution without runtime crashes
+
+## Backend API Contract (Frontend Integration)
+
+This section documents the finalized API contract used by the frontend to integrate with the backend.
+
+---
+
+### Upload Endpoint
+
+**POST** `/upload`
+
+Request: `multipart/form-data` with a `file` field.
+
+Constraints:
+- Maximum file size: 10MB
+- Empty files are rejected
+
+Success Response `200 OK`:
+```json
+{
+  "message": "File uploaded successfully",
+  "token": "<generated-token>",
+  "downloadUrl": "/download/<generated-token>"
+}
+```
+
+Error Response `400 Bad Request`:
+```json
+{ "error": "File exceeds maximum allowed size of 10MB" }
+{ "error": "File is empty" }
+{ "error": "File not found in request" }
+```
+
+---
+
+### Metadata Endpoint
+
+**GET** `/file/{token}`
+
+Success Response `200 OK`:
+```json
+{
+  "id": 1,
+  "filename": "example.pdf",
+  "token": "<token>",
+  "size": 204800,
+  "createdAt": "2026-03-25T10:00:00Z"
+}
+```
+
+Error Response `404 Not Found`:
+```json
+{ "error": "file not found" }
+```
+
+---
+
+### Download Endpoint
+
+**GET** `/download/{token}`
+
+- Returns the file as an attachment with the original filename in `Content-Disposition`
+- Returns `404` if token is invalid or file is missing from server
