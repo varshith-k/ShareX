@@ -48,9 +48,13 @@ function Upload() {
       <div style={styles.card}>
         <input type="file" onChange={(e) => setFile(e.target.files[0])} />
 
-        <button onClick={handleUpload} style={styles.button}>
-          Upload
-        </button>
+        <button
+  onClick={handleUpload}
+  style={styles.button}
+  disabled={!file}
+>
+  Upload
+</button>
 
         {progress > 0 && (
           <div style={styles.progressBar}>
