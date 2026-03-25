@@ -19,25 +19,19 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseMultipartForm(MaxUploadSize)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "File exceeds maximum allowed size of 10MB"})
+		utils.WriteJSONError(w, "File exceeds maximum allowed size of 10MB", http.StatusBadRequest)
 		return
 	}
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "File not found in request"})
+		utils.WriteJSONError(w, "File not found in request", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	if handler.Size == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "File is empty"})
+		utils.WriteJSONError(w, "File is empty", http.StatusBadRequest)
 		return
 	}
 
@@ -47,18 +41,14 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	dst, err := os.Create(fp)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Unable to save file"})
+		utils.WriteJSONError(w, "Unable to save file", http.StatusInternalServerError)
 		return
 	}
 	defer dst.Close()
 
 	size, err := io.Copy(dst, file)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Error saving file"})
+		utils.WriteJSONError(w, "Error saving file", http.StatusInternalServerError)
 		return
 	}
 
@@ -73,9 +63,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = repo.Create(&newFile)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Database error"})
+		utils.WriteJSONError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 

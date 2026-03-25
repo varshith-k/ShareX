@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-
+	"sharex-backend/internal/utils"
 	"sharex-backend/internal/repository"
 )
 
@@ -15,10 +15,7 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) {
 
 	file, err := repo.GetByToken(token)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error": "File not found",
-		})
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
 		return
 	}
 
