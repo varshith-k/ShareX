@@ -79,9 +79,12 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	downloadURL := "/download/" + token
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "File uploaded successfully",
-		"token":   token,
+		"message":     "File uploaded successfully",
+		"token":       token,
+		"downloadUrl": downloadURL,
 	})
 }
