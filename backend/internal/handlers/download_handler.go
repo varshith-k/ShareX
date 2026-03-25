@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
+	"sharex-backend/internal/utils" 
 	"sharex-backend/internal/repository"
 )
 
@@ -14,20 +14,20 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	token = strings.TrimSpace(token)
 
 	if token == "" || strings.Contains(token, "/") {
-		http.Error(w, "Invalid token", http.StatusBadRequest)
+		utils.WriteJSONError(w, "Invalid token", http.StatusBadRequest)
 		return
 	}
 
 	repo := repository.FileRepository{}
 	fileMeta, err := repo.GetByToken(token)
 	if err != nil {
-		http.Error(w, "File not found", http.StatusNotFound)
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
 		return
 	}
 
 	file, err := os.Open(fileMeta.Filepath)
 	if err != nil {
-		http.Error(w, "File missing on server", http.StatusNotFound)
+		utils.WriteJSONError(w, "File missing on server", http.StatusNotFound)
 		return
 	}
 	defer file.Close()

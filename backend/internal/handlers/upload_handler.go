@@ -15,13 +15,13 @@ import (
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(10 << 20) // 10MB
 	if err != nil {
-		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		utils.WriteJSONError(w, "Unable to parse form", http.StatusBadRequest)
 		return
 	}
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "File not found", http.StatusBadRequest)
+		utils.WriteJSONError(w, "File not found", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -32,14 +32,14 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	dst, err := os.Create(filepath)
 	if err != nil {
-		http.Error(w, "Unable to save file", http.StatusInternalServerError)
+		utils.WriteJSONError(w, "Unable to save file", http.StatusInternalServerError)
 		return
 	}
 	defer dst.Close()
 
 	size, err := io.Copy(dst, file)
 	if err != nil {
-		http.Error(w, "Error saving file", http.StatusInternalServerError)
+		utils.WriteJSONError(w, "Error saving file", http.StatusInternalServerError)
 		return
 	}
 
@@ -54,7 +54,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = repo.Create(&newFile)
 	if err != nil {
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		utils.WriteJSONError(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
