@@ -23,4 +23,12 @@ export const api = {
       headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
       body: isFormData ? body : JSON.stringify(body),
     }),
+
+  // ✅ ADD THIS (FE2-01)
+  uploadFile: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return api.post('/upload', formData, true);
+  },
 };
