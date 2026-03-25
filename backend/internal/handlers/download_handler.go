@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"sharex-backend/internal/utils" 
 	"sharex-backend/internal/repository"
@@ -32,10 +31,7 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	filename := filepath.Base(fileMeta.Filepath)
-	if idx := strings.Index(filename, "_"); idx != -1 && idx+1 < len(filename) {
-		filename = filename[idx+1:]
-	}
+	filename := fileMeta.Filename
 
 	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
 	http.ServeContent(w, r, filename, fileMeta.CreatedAt, file)

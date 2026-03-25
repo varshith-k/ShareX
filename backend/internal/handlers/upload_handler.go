@@ -12,25 +12,34 @@ import (
 	"sharex-backend/internal/utils"
 )
 
+const MaxUploadSize = 10 << 20 // 10MB
+
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // 10MB
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+
+	err := r.ParseMultipartForm(MaxUploadSize)
 	if err != nil {
-		utils.WriteJSONError(w, "Unable to parse form", http.StatusBadRequest)
+		utils.WriteJSONError(w, "File exceeds maximum allowed size of 10MB", http.StatusBadRequest)
 		return
 	}
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		utils.WriteJSONError(w, "File not found", http.StatusBadRequest)
+		utils.WriteJSONError(w, "File not found in request", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
+	if handler.Size == 0 {
+		utils.WriteJSONError(w, "File is empty", http.StatusBadRequest)
+		return
+	}
+
 	token := utils.GenerateToken()
 
-	filepath := filepath.Join("uploads", token+"_"+handler.Filename)
+	fp := filepath.Join("uploads", token+"_"+handler.Filename)
 
-	dst, err := os.Create(filepath)
+	dst, err := os.Create(fp)
 	if err != nil {
 		utils.WriteJSONError(w, "Unable to save file", http.StatusInternalServerError)
 		return
@@ -47,7 +56,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	newFile := models.File{
 		Filename: handler.Filename,
-		Filepath: filepath,
+		Filepath: fp,
 		Token:    token,
 		Size:     size,
 	}
@@ -58,11 +67,12 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]string{
-		"message": "File uploaded successfully",
-		"token":   token,
-	}
+	downloadURL := "/download/" + token
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":     "File uploaded successfully",
+		"token":       token,
+		"downloadUrl": downloadURL,
+	})
 }
