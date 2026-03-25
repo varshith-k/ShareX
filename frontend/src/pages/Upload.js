@@ -1,26 +1,26 @@
 import { useState } from "react";
-import { api } from "../api/api";
+import { api } from "../services/api";
 
 function Upload() {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // ✅ new state
 
   const handleUpload = async () => {
     if (!file) {
-      setError("Please select a file first.");
+      setError("Please select a file before uploading"); // ✅ error handling
       return;
     }
 
     try {
-      setError("");
       setStatus("Uploading...");
       setResult(null);
       setProgress(0);
+      setError(""); // ✅ clear error
 
-      // simulate progress
+      // simulate progress (since fetch doesn't support it)
       let fakeProgress = 0;
       const interval = setInterval(() => {
         fakeProgress += 10;
@@ -35,8 +35,7 @@ function Upload() {
       setResult(data);
       setStatus("");
     } catch (err) {
-      setError(err.message || "Upload failed");
-      setStatus("");
+      setStatus(err.message || "Upload failed");
       setProgress(0);
     }
   };
@@ -46,30 +45,40 @@ function Upload() {
       <h2>Upload File</h2>
 
       <div style={styles.card}>
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files[0])}
+        />
 
         <button
-  onClick={handleUpload}
-  style={styles.button}
-  disabled={!file}
->
-  Upload
-</button>
+          onClick={handleUpload}
+          style={styles.button}
+          disabled={!file} // ✅ disable when no file
+        >
+          Upload
+        </button>
 
         {progress > 0 && (
           <div style={styles.progressBar}>
             <div
-              style={{ ...styles.progressFill, width: `${progress}%` }}
+              style={{
+                ...styles.progressFill,
+                width: `${progress}%`,
+              }}
             />
           </div>
         )}
 
         {status && <p style={styles.status}>{status}</p>}
 
+        {/* ✅ Error message */}
         {error && (
-          <p style={{ color: "red", marginTop: "16px" }}>{error}</p>
+          <p style={{ color: "red", marginTop: "10px" }}>
+            {error}
+          </p>
         )}
 
+        {/* ✅ Success UI */}
         {result && (
           <div style={{ marginTop: "16px" }}>
             <p style={{ color: "green", fontWeight: "600" }}>
@@ -82,7 +91,10 @@ function Upload() {
               href={result.downloadUrl}
               target="_blank"
               rel="noreferrer"
-              style={{ color: "#2563eb", textDecoration: "underline" }}
+              style={{
+                color: "#2563eb",
+                textDecoration: "underline",
+              }}
             >
               Download File
             </a>
@@ -99,7 +111,7 @@ const styles = {
     marginTop: "20px",
     padding: "24px",
     borderRadius: "8px",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
     background: "#fff",
   },
   button: {
