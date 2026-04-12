@@ -47,7 +47,8 @@ const getExpiryState = (metadata) => {
   }
 
   const expiryDate = new Date(metadata.expiresAt);
-  const derivedExpired = !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
+  const derivedExpired =
+    !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
   const isExpired = explicitExpired || derivedExpired;
 
   return {
@@ -58,10 +59,48 @@ const getExpiryState = (metadata) => {
   };
 };
 
+const classifyErrorState = (message = '') => {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('revoked')) {
+    return {
+      badge: 'Revoked',
+      title: 'This share link has been revoked',
+      description:
+        'The file owner has disabled this link, so the file is no longer available through this URL.',
+      accent: '#b91c1c',
+      background: '#fef2f2',
+      border: '#fecaca',
+    };
+  }
+
+  if (normalized.includes('expired')) {
+    return {
+      badge: 'Expired',
+      title: 'This share link has expired',
+      description:
+        'This file was shared with a limited lifetime, and the download window has ended.',
+      accent: '#92400e',
+      background: '#fffbeb',
+      border: '#fde68a',
+    };
+  }
+
+  return {
+    badge: 'Invalid Link',
+    title: 'File not found',
+    description:
+      'The file link is invalid, unavailable, or may have been removed.',
+    accent: '#475569',
+    background: '#f8fafc',
+    border: '#cbd5e1',
+  };
+};
+
 const DownloadPage = () => {
   const { token } = useParams();
   const [metadata, setMetadata] = useState(null);
-  const [error, setError] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,10 +109,10 @@ const DownloadPage = () => {
         setLoading(true);
         const data = await fetchFileMetadata(token);
         setMetadata(data);
-        setError('');
+        setErrorMessage('');
       } catch (err) {
         setMetadata(null);
-        setError('The file link is invalid or has expired.');
+        setErrorMessage(err?.message || 'Request failed');
       } finally {
         setLoading(false);
       }
@@ -104,17 +143,41 @@ const DownloadPage = () => {
     );
   }
 
-  if (error) {
+  if (errorMessage) {
+    const errorState = classifyErrorState(errorMessage);
+
     return (
       <main style={styles.page}>
         <section style={styles.wrapper}>
-          <div style={styles.errorCard}>
-            <div style={styles.badgeError}>Unavailable</div>
-            <h1 style={styles.errorTitle}>File not found</h1>
-            <p style={styles.errorText}>{error}</p>
-            <Link to="/" style={styles.secondaryButton}>
-              Back to Home
-            </Link>
+          <div
+            style={{
+              ...styles.errorCard,
+              background: errorState.background,
+              border: `1px solid ${errorState.border}`,
+            }}
+          >
+            <div
+              style={{
+                ...styles.errorBadge,
+                color: errorState.accent,
+                border: `1px solid ${errorState.border}`,
+              }}
+            >
+              {errorState.badge}
+            </div>
+
+            <h1 style={styles.errorTitle}>{errorState.title}</h1>
+            <p style={styles.errorText}>{errorState.description}</p>
+
+            <div style={styles.errorActionRow}>
+              <Link to="/download" style={styles.primaryLinkButton}>
+                Find Another File
+              </Link>
+
+              <Link to="/" style={styles.secondaryButton}>
+                Back to Home
+              </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -223,8 +286,6 @@ const styles = {
     textAlign: 'center',
   },
   errorCard: {
-    background: '#ffffff',
-    border: '1px solid #fecaca',
     borderRadius: '24px',
     boxShadow: '0 20px 45px rgba(15, 23, 42, 0.08)',
     padding: '32px',
@@ -242,10 +303,9 @@ const styles = {
     padding: '8px 14px',
     textTransform: 'uppercase',
   },
-  badgeError: {
-    background: '#fee2e2',
+  errorBadge: {
+    background: '#ffffff',
     borderRadius: '999px',
-    color: '#b91c1c',
     display: 'inline-block',
     fontSize: '0.8rem',
     fontWeight: 700,
@@ -338,6 +398,12 @@ const styles = {
     gap: '12px',
     marginBottom: '20px',
   },
+  errorActionRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
+    justifyContent: 'center',
+  },
   primaryButton: {
     background: '#2563eb',
     border: 'none',
@@ -347,6 +413,16 @@ const styles = {
     fontSize: '1rem',
     fontWeight: 700,
     padding: '14px 22px',
+  },
+  primaryLinkButton: {
+    background: '#2563eb',
+    borderRadius: '12px',
+    color: '#ffffff',
+    display: 'inline-block',
+    fontSize: '1rem',
+    fontWeight: 700,
+    padding: '14px 22px',
+    textDecoration: 'none',
   },
   secondaryButton: {
     background: '#ffffff',
