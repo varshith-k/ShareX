@@ -18,6 +18,11 @@ type registerRequest struct {
 	Password string `json:"password"`
 }
 
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -71,6 +76,57 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			"name":      user.Name,
 			"email":     user.Email,
 			"createdAt": user.CreatedAt,
+		},
+	})
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req loginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utils.WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	req.Password = strings.TrimSpace(req.Password)
+
+	if req.Email == "" || req.Password == "" {
+		utils.WriteJSONError(w, "email and password are required", http.StatusBadRequest)
+		return
+	}
+
+	repo := repository.UserRepository{}
+	user, err := repo.GetByEmail(req.Email)
+	if err != nil {
+		utils.WriteJSONError(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	if !services.CheckPasswordHash(req.Password, user.PasswordHash) {
+		utils.WriteJSONError(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	token, err := services.GenerateJWT(user.ID, user.Email, user.Name)
+	if err != nil {
+		utils.WriteJSONError(w, "Unable to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"message": "Login successful",
+		"token":   token,
+		"user": map[string]any{
+			"id":    user.ID,
+			"name":  user.Name,
+			"email": user.Email,
 		},
 	})
 }
