@@ -1,5 +1,5 @@
 package handlers
-
+import "time"
 import (
 	"net/http"
 	"os"
@@ -35,10 +35,24 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := os.Open(fileMeta.Filepath)
+	file, err := repo.GetByToken(token)
 	if err != nil {
-		utils.WriteJSONError(w, "File missing on server", http.StatusNotFound)
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
 		return
+	}
+
+	// 🔥 Check if file is revoked
+	if !file.IsActive {
+		utils.WriteJSONError(w, "File link is revoked", http.StatusForbidden)
+		return
+	}
+
+	// 🔥 Check if file is expired
+	if file.ExpiresAt != nil {
+		if time.Now().After(*file.ExpiresAt) {
+			utils.WriteJSONError(w, "File link has expired", http.StatusGone)
+			return
+		}
 	}
 	defer file.Close()
 
