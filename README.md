@@ -161,6 +161,41 @@ cd backend
 go run ./cmd/server
 ```
 
+### Auth API Response Format
+
+`POST /auth/login`
+
+Request body:
+
+```json
+{
+    "email": "user@example.com",
+    "password": "your-password"
+}
+```
+
+Success response (`200 OK`):
+
+```json
+{
+    "message": "Login successful",
+    "token": "<signed-jwt>",
+    "user": {
+        "id": 1,
+        "name": "User Name",
+        "email": "user@example.com"
+    }
+}
+```
+
+Invalid credentials response (`401 Unauthorized`):
+
+```json
+{
+    "error": "Invalid email or password"
+}
+```
+
 ### Frontend
 
 ```bash

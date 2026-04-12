@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("/file/", handlers.MetadataHandler)
 
 	mux.HandleFunc("/auth/register", handlers.RegisterHandler)
+	mux.HandleFunc("/auth/login", handlers.LoginHandler)
 
 	log.Printf("Server running on port %s\n", port)
 
