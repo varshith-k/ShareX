@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -324,6 +325,129 @@ func TestMyFilesHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	handler := middleware.AuthMiddleware(http.HandlerFunc(MyFilesHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected status 401, got %d", rr.Code)
+	}
+}
+
+func TestDeleteMyFileHandler_Success(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	userID := 303
+	token, err := services.GenerateJWT(userID, "owner@example.com", "Owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "owned-file.txt")
+	if err := os.WriteFile(filePath, []byte("delete me"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.FileRepository{}
+	if err := repo.Create(&models.File{
+		Filename:  "owned-file.txt",
+		Filepath:  filePath,
+		Token:     "owned-delete-token",
+		Size:      9,
+		OwnerID:   &userID,
+		CreatedAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/me/files/owned-delete-token", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(DeleteMyFileHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", rr.Code)
+	}
+
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		t.Fatalf("Expected physical file to be deleted")
+	}
+
+	if _, err := repo.GetByToken("owned-delete-token"); err == nil {
+		t.Fatalf("Expected metadata to be deleted")
+	}
+}
+
+func TestDeleteMyFileHandler_ForbiddenForNonOwner(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	ownerID := 404
+	nonOwnerID := 505
+	token, err := services.GenerateJWT(nonOwnerID, "nonowner@example.com", "NonOwner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "owner-only.txt")
+	if err := os.WriteFile(filePath, []byte("do not delete"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.FileRepository{}
+	if err := repo.Create(&models.File{
+		Filename:  "owner-only.txt",
+		Filepath:  filePath,
+		Token:     "forbidden-token",
+		Size:      13,
+		OwnerID:   &ownerID,
+		CreatedAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/me/files/forbidden-token", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(DeleteMyFileHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("Expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestDeleteMyFileHandler_NotFound(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	token, err := services.GenerateJWT(606, "user@example.com", "User")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "/me/files/missing-token", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(DeleteMyFileHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("Expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestDeleteMyFileHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
+	req := httptest.NewRequest(http.MethodDelete, "/me/files/any-token", nil)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(DeleteMyFileHandler))
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
