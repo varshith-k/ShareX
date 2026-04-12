@@ -1,63 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import FileDetailPanel from '../components/FileDetailPanel';
 import { fetchFileMetadata, getDownloadUrl } from '../services/api';
-
-const formatFileSize = (size) => {
-  if (size === null || size === undefined || Number.isNaN(Number(size))) {
-    return 'Unknown size';
-  }
-
-  const bytes = Number(size);
-
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-};
-
-const formatDate = (value) => {
-  if (!value) return 'Unavailable';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleString();
-};
-
-const getExpiryState = (metadata) => {
-  if (!metadata) {
-    return {
-      label: 'Unavailable',
-      value: 'Unavailable',
-      isExpired: false,
-      isPermanent: false,
-    };
-  }
-
-  const explicitExpired = metadata.isExpired === true;
-
-  if (!metadata.expiresAt) {
-    return {
-      label: 'No expiration',
-      value: 'This file link does not expire',
-      isExpired: false,
-      isPermanent: true,
-    };
-  }
-
-  const expiryDate = new Date(metadata.expiresAt);
-  const derivedExpired =
-    !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
-  const isExpired = explicitExpired || derivedExpired;
-
-  return {
-    label: isExpired ? 'Expired' : 'Active until',
-    value: formatDate(metadata.expiresAt),
-    isExpired,
-    isPermanent: false,
-  };
-};
 
 const classifyErrorState = (message = '') => {
   const normalized = message.toLowerCase();
@@ -95,6 +39,49 @@ const classifyErrorState = (message = '') => {
     background: '#f8fafc',
     border: '#cbd5e1',
   };
+};
+
+const getExpiryState = (metadata) => {
+  if (!metadata) {
+    return {
+      label: 'Unavailable',
+      value: 'Unavailable',
+      isExpired: false,
+      isPermanent: false,
+    };
+  }
+
+  const explicitExpired = metadata.isExpired === true;
+
+  if (!metadata.expiresAt) {
+    return {
+      label: 'No expiration',
+      value: 'This file link does not expire',
+      isExpired: false,
+      isPermanent: true,
+    };
+  }
+
+  const expiryDate = new Date(metadata.expiresAt);
+  const derivedExpired =
+    !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
+  const isExpired = explicitExpired || derivedExpired;
+
+  return {
+    label: isExpired ? 'Expired' : 'Active until',
+    value: metadata.expiresAt,
+    isExpired,
+    isPermanent: false,
+  };
+};
+
+const formatExpiryDate = (value) => {
+  if (!value) return 'Unavailable';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString();
 };
 
 const DownloadPage = () => {
@@ -209,36 +196,19 @@ const DownloadPage = () => {
             }}
           >
             <span style={styles.expiryBannerLabel}>{expiry.label}</span>
-            <span style={styles.expiryBannerValue}>{expiry.value}</span>
+            <span style={styles.expiryBannerValue}>
+              {expiry.isPermanent ? expiry.value : formatExpiryDate(expiry.value)}
+            </span>
           </div>
 
-          <div style={styles.metaGrid}>
-            <div style={styles.metaItem}>
-              <span style={styles.metaLabel}>File name</span>
-              <span style={styles.metaValue}>
-                {metadata?.filename || 'Unavailable'}
-              </span>
-            </div>
-
-            <div style={styles.metaItem}>
-              <span style={styles.metaLabel}>Size</span>
-              <span style={styles.metaValue}>
-                {formatFileSize(metadata?.size)}
-              </span>
-            </div>
-
-            <div style={styles.metaItem}>
-              <span style={styles.metaLabel}>Token</span>
-              <span style={styles.metaValueMono}>{token}</span>
-            </div>
-
-            <div style={styles.metaItem}>
-              <span style={styles.metaLabel}>Uploaded</span>
-              <span style={styles.metaValue}>
-                {formatDate(metadata?.createdAt)}
-              </span>
-            </div>
-          </div>
+          <FileDetailPanel
+            filename={metadata?.filename}
+            size={metadata?.size}
+            token={token}
+            createdAt={metadata?.createdAt}
+            expiresAt={metadata?.expiresAt}
+            isExpired={expiry.isExpired}
+          />
 
           <div style={styles.actionRow}>
             <button type="button" onClick={handleDownload} style={styles.primaryButton}>
@@ -357,40 +327,6 @@ const styles = {
     fontSize: '1rem',
     fontWeight: 600,
     color: '#0f172a',
-  },
-  metaGrid: {
-    display: 'grid',
-    gap: '16px',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    marginBottom: '28px',
-  },
-  metaItem: {
-    background: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    padding: '18px',
-  },
-  metaLabel: {
-    color: '#64748b',
-    fontSize: '0.85rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-  },
-  metaValue: {
-    color: '#0f172a',
-    fontSize: '1rem',
-    fontWeight: 600,
-    overflowWrap: 'anywhere',
-  },
-  metaValueMono: {
-    color: '#0f172a',
-    fontFamily: 'monospace',
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    overflowWrap: 'anywhere',
   },
   actionRow: {
     display: 'flex',
