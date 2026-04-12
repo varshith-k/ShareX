@@ -7,6 +7,7 @@ import (
 
 	"sharex-backend/internal/database"
 	"sharex-backend/internal/handlers"
+	"sharex-backend/internal/middleware"
 )
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
 
 	mux.HandleFunc("/health", handlers.HealthHandler)
 
-	mux.HandleFunc("/upload", handlers.UploadHandler)
+	mux.Handle("/upload", middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)))
 
 	mux.HandleFunc("/download/", handlers.DownloadHandler)
 
@@ -58,7 +59,7 @@ func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
