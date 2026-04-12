@@ -1,6 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { getMyFiles } from '../services/files';
 
+function formatFileSize(size) {
+  if (!size && size !== 0) {
+    return 'Unknown size';
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatCreatedDate(value) {
+  if (!value) {
+    return 'Unknown date';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date';
+  }
+
+  return date.toLocaleString();
+}
+
 function Dashboard() {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
@@ -54,11 +84,19 @@ function Dashboard() {
 
             {!isLoading && error && <p style={styles.errorText}>{error}</p>}
 
+            {!isLoading && !error && files.length === 0 && (
+              <p style={styles.cardText}>No uploaded files found yet.</p>
+            )}
+
             {!isLoading && !error && files.length > 0 && (
               <ul style={styles.list}>
                 {files.map((file, index) => (
                   <li key={file.token || file.id || index} style={styles.listItem}>
                     <p style={styles.fileName}>{file.filename || file.name || 'Untitled file'}</p>
+                    <p style={styles.fileMeta}>Size: {formatFileSize(file.size)}</p>
+                    <p style={styles.fileMeta}>
+                      Created: {formatCreatedDate(file.createdAt || file.created_at)}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -138,8 +176,13 @@ const styles = {
     padding: '12px 0',
   },
   fileName: {
-    margin: 0,
     fontWeight: 600,
+    margin: '0 0 6px',
+  },
+  fileMeta: {
+    color: '#64748b',
+    fontSize: '0.95rem',
+    margin: '4px 0 0',
   },
 };
 
