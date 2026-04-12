@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/repository"
+	"sharex-backend/internal/services"
 )
 
 func TestUploadHandler_MissingFile(t *testing.T) {
@@ -112,5 +114,56 @@ func TestUploadHandler_ValidFile(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Clean(fileMeta.Filepath)); err != nil {
 		t.Fatalf("Expected uploaded file to exist on disk: %v", err)
+	}
+}
+
+func TestUploadHandler_AuthenticatedUploadStoresOwnerID(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Cleanup(func() {
+		os.RemoveAll("uploads")
+	})
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	authToken, err := services.GenerateJWT(77, "owner@example.com", "Owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	fw, err := writer.CreateFormFile("file", "owner-test.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fw.Write([]byte("owner content"))
+	writer.Close()
+
+	req, err := http.NewRequest("POST", "/upload", &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+authToken)
+
+	rr := httptest.NewRecorder()
+	handler := middleware.AuthMiddleware(http.HandlerFunc(UploadHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %v", rr.Code)
+	}
+
+	var response map[string]string
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Expected valid JSON response: %v", err)
+	}
+
+	fileMeta, err := (&repository.FileRepository{}).GetByToken(response["token"])
+	if err != nil {
+		t.Fatalf("Expected file metadata to be saved: %v", err)
+	}
+
+	if fileMeta.OwnerID == nil || *fileMeta.OwnerID != 77 {
+		t.Fatalf("Expected owner ID 77, got %v", fileMeta.OwnerID)
 	}
 }
