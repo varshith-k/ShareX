@@ -4,11 +4,17 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sharex-backend/internal/utils" 
+
 	"sharex-backend/internal/repository"
+	"sharex-backend/internal/utils"
 )
 
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	token := strings.TrimPrefix(r.URL.Path, "/download/")
 	token = strings.TrimSpace(token)
 
@@ -20,6 +26,11 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 	repo := repository.FileRepository{}
 	fileMeta, err := repo.GetByToken(token)
 	if err != nil {
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	if !fileMeta.IsActive {
 		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
 		return
 	}

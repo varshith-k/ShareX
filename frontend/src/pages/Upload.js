@@ -1,92 +1,345 @@
-import { useState } from "react";
-import axios from "axios";
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { uploadFile } from '../services/api';
 
 function Upload() {
   const [file, setFile] = useState(null);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState('');
   const [progress, setProgress] = useState(0);
+  const [shareData, setShareData] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
+
+  const shareLink = useMemo(() => {
+    if (!shareData?.token) {
+      return '';
+    }
+    return `${window.location.origin}/download/${shareData.token}`;
+  }, [shareData]);
 
   const handleUpload = async () => {
     if (!file) {
-      setStatus("Please select a file first.");
+      setStatus('Please select a file first.');
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    try {
+      setIsUploading(true);
+      setProgress(15);
+      setShareData(null);
+      setCopyStatus('');
+      setStatus('Uploading file to the backend...');
+
+      const response = await uploadFile(file);
+
+      setProgress(100);
+      setShareData(response);
+      setStatus('Upload successful. Your share link is ready.');
+    } catch (error) {
+      setProgress(0);
+      setStatus(error.message || 'Upload failed. Backend may not be ready yet.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!shareLink) return;
 
     try {
-      setStatus("Uploading...");
-
-      await axios.post("http://localhost:8080/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (event) => {
-          const percent = Math.round((event.loaded * 100) / event.total);
-          setProgress(percent);
-        },
-      });
-
-      setStatus("Upload successful!");
+      await navigator.clipboard.writeText(shareLink);
+      setCopyStatus('Share link copied successfully.');
     } catch (error) {
-      setStatus("Upload failed. Backend may not be ready yet.");
+      setCopyStatus('Copy failed. Please copy the link manually.');
     }
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Upload File</h2>
+    <main style={styles.container}>
+      <section style={styles.card}>
+        <div>
+          <p style={styles.kicker}>Share a file</p>
+          <h1 style={styles.heading}>Upload to ShareX</h1>
+          <p style={styles.description}>
+            Choose a file, send it to the backend, and generate a shareable link
+            for the public download page.
+          </p>
+        </div>
 
-      <div style={styles.card}>
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} />
+        <div style={styles.inputGroup}>
+          <label htmlFor="file-upload" style={styles.label}>
+            Choose file
+          </label>
+          <input
+            id="file-upload"
+            type="file"
+            onChange={(event) => setFile(event.target.files?.[0] || null)}
+            style={styles.input}
+          />
+        </div>
 
-        <button onClick={handleUpload} style={styles.button}>
-          Upload
-        </button>
+        <div style={styles.actionRow}>
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={isUploading}
+            style={{
+              ...styles.button,
+              ...(isUploading ? styles.buttonDisabled : {}),
+            }}
+          >
+            {isUploading ? 'Uploading...' : 'Upload'}
+          </button>
+        </div>
 
         {progress > 0 && (
-          <div style={styles.progressBar}>
-            <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+          <div style={styles.progressWrapper}>
+            <div style={styles.progressBar}>
+              <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+            </div>
+            <p style={styles.progressText}>{progress}% complete</p>
           </div>
         )}
 
         {status && <p style={styles.status}>{status}</p>}
-      </div>
-    </div>
+
+        {shareData && (
+          <section style={styles.sharePanel}>
+            <div style={styles.shareHeader}>
+              <div>
+                <p style={styles.shareKicker}>Share link ready</p>
+                <h2 style={styles.shareTitle}>Send this file to others</h2>
+              </div>
+
+              <button type="button" onClick={handleCopyLink} style={styles.copyButton}>
+                Copy Link
+              </button>
+            </div>
+
+            <div style={styles.linkBox}>
+              <span style={styles.linkLabel}>Share URL</span>
+              <span style={styles.linkValue}>{shareLink}</span>
+            </div>
+
+            {copyStatus && <p style={styles.copyStatus}>{copyStatus}</p>}
+
+            <div style={styles.metaGrid}>
+              <div style={styles.metaItem}>
+                <span style={styles.metaLabel}>Token</span>
+                <span style={styles.metaValue}>{shareData.token}</span>
+              </div>
+
+              <div style={styles.metaItem}>
+                <span style={styles.metaLabel}>Backend download URL</span>
+                <span style={styles.metaValue}>{shareData.downloadUrl}</span>
+              </div>
+            </div>
+
+            <div style={styles.linkActions}>
+              <a href={shareLink} target="_blank" rel="noreferrer" style={styles.primaryLink}>
+                Open Share Page
+              </a>
+
+              <Link to={`/download/${shareData.token}`} style={styles.secondaryLink}>
+                View Download Route
+              </Link>
+            </div>
+          </section>
+        )}
+      </section>
+    </main>
   );
 }
 
 const styles = {
-  container: { maxWidth: "600px", margin: "0 auto" },
+  container: {
+    margin: '0 auto',
+    maxWidth: '760px',
+    padding: '40px 24px 56px',
+  },
   card: {
-    marginTop: "20px",
-    padding: "24px",
-    borderRadius: "8px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    background: "#fff",
+    background: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '18px',
+    boxShadow: '0 18px 40px rgba(15, 23, 42, 0.08)',
+    display: 'grid',
+    gap: '16px',
+    padding: '28px',
+  },
+  kicker: {
+    color: '#2563eb',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    margin: 0,
+    textTransform: 'uppercase',
+  },
+  heading: {
+    marginBottom: '10px',
+  },
+  description: {
+    color: '#475569',
+    lineHeight: 1.6,
+  },
+  inputGroup: {
+    display: 'grid',
+    gap: '10px',
+  },
+  label: {
+    fontWeight: 600,
+  },
+  input: {
+    border: '1px solid #cbd5e1',
+    borderRadius: '10px',
+    padding: '10px',
+  },
+  actionRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
   },
   button: {
-    marginTop: "16px",
-    padding: "10px 18px",
-    background: "#2563eb",
-    color: "white",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
+    background: '#2563eb',
+    border: 'none',
+    borderRadius: '10px',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: 700,
+    padding: '12px 18px',
+  },
+  buttonDisabled: {
+    cursor: 'not-allowed',
+    opacity: 0.7,
+  },
+  progressWrapper: {
+    display: 'grid',
+    gap: '8px',
   },
   progressBar: {
-    marginTop: "16px",
-    height: "8px",
-    background: "#e5e7eb",
-    borderRadius: "4px",
-    overflow: "hidden",
+    background: '#e5e7eb',
+    borderRadius: '999px',
+    height: '10px',
+    overflow: 'hidden',
   },
   progressFill: {
-    height: "100%",
-    background: "#2563eb",
+    background: '#2563eb',
+    height: '100%',
+  },
+  progressText: {
+    color: '#475569',
+    fontSize: '0.9rem',
+    margin: 0,
   },
   status: {
-    marginTop: "16px",
-    fontWeight: "500",
+    fontWeight: '500',
+    margin: 0,
+  },
+  sharePanel: {
+    background: '#eff6ff',
+    border: '1px solid #bfdbfe',
+    borderRadius: '16px',
+    display: 'grid',
+    gap: '16px',
+    padding: '20px',
+  },
+  shareHeader: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
+    justifyContent: 'space-between',
+  },
+  shareKicker: {
+    color: '#1d4ed8',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    margin: 0,
+    textTransform: 'uppercase',
+  },
+  shareTitle: {
+    color: '#1e3a8a',
+    margin: '6px 0 0',
+  },
+  copyButton: {
+    background: '#1d4ed8',
+    border: 'none',
+    borderRadius: '10px',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: 700,
+    padding: '12px 18px',
+  },
+  linkBox: {
+    background: '#ffffff',
+    border: '1px solid #dbeafe',
+    borderRadius: '14px',
+    display: 'grid',
+    gap: '8px',
+    padding: '16px',
+  },
+  linkLabel: {
+    color: '#64748b',
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+  },
+  linkValue: {
+    color: '#0f172a',
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    overflowWrap: 'anywhere',
+  },
+  copyStatus: {
+    color: '#166534',
+    fontWeight: 600,
+    margin: 0,
+  },
+  metaGrid: {
+    display: 'grid',
+    gap: '12px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  },
+  metaItem: {
+    background: '#ffffff',
+    border: '1px solid #dbeafe',
+    borderRadius: '14px',
+    display: 'grid',
+    gap: '8px',
+    padding: '16px',
+  },
+  metaLabel: {
+    color: '#64748b',
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+  },
+  metaValue: {
+    color: '#0f172a',
+    fontWeight: 600,
+    overflowWrap: 'anywhere',
+  },
+  linkActions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
+  },
+  primaryLink: {
+    background: '#2563eb',
+    borderRadius: '10px',
+    color: '#ffffff',
+    fontWeight: 700,
+    padding: '12px 18px',
+    textDecoration: 'none',
+  },
+  secondaryLink: {
+    background: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '10px',
+    color: '#0f172a',
+    fontWeight: 600,
+    padding: '12px 18px',
+    textDecoration: 'none',
   },
 };
 

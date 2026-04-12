@@ -1,4 +1,79 @@
+import { Link } from 'react-router-dom';
+
 function Home() {
-  return <h2>Welcome to ShareX</h2>;
+  return (
+    <main style={styles.page}>
+      <section style={styles.hero}>
+        <div>
+          <p style={styles.badge}>Integrated frontend + backend</p>
+          <h2 style={styles.heading}>Upload, share, and retrieve files from one place.</h2>
+          <p style={styles.copy}>
+            This Sprint 2 build focuses on a working upload-to-download flow, backend API integration,
+            and automated test coverage for both the React app and Go API.
+          </p>
+        </div>
+
+        <div style={styles.actions}>
+          <Link to="/upload" style={styles.primaryAction}>Open Upload Flow</Link>
+          <Link to="/download" style={styles.secondaryAction}>Lookup a Download</Link>
+        </div>
+      </section>
+    </main>
+  );
 }
+
+const styles = {
+  page: {
+    padding: '40px 32px 56px',
+  },
+  hero: {
+    background: 'linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)',
+    border: '1px solid #dbeafe',
+    borderRadius: '24px',
+    margin: '0 auto',
+    maxWidth: '960px',
+    padding: '40px',
+  },
+  badge: {
+    color: '#1d4ed8',
+    fontSize: '0.8rem',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+    margin: 0,
+    textTransform: 'uppercase',
+  },
+  heading: {
+    color: '#0f172a',
+    fontSize: '2.4rem',
+    lineHeight: 1.1,
+    marginBottom: '16px',
+  },
+  copy: {
+    color: '#334155',
+    fontSize: '1rem',
+    lineHeight: 1.7,
+    maxWidth: '640px',
+  },
+  actions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '14px',
+    marginTop: '28px',
+  },
+  primaryAction: {
+    background: '#0f172a',
+    borderRadius: '999px',
+    color: '#fff',
+    padding: '12px 18px',
+    textDecoration: 'none',
+  },
+  secondaryAction: {
+    background: '#dbeafe',
+    borderRadius: '999px',
+    color: '#1e3a8a',
+    padding: '12px 18px',
+    textDecoration: 'none',
+  },
+};
+
 export default Home;

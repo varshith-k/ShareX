@@ -8,5 +8,9 @@ type File struct {
 	Filepath  string
 	Token     string
 	Size      int64
+	OwnerID   *int
+	IsActive  bool
 	CreatedAt time.Time
+
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }

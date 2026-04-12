@@ -2,19 +2,15 @@ package repository
 
 import (
 	"testing"
-	"sharex-backend/internal/database"
+
 	"sharex-backend/internal/models"
 )
 
 func TestGetByToken_ValidToken(t *testing.T) {
+	ResetInMemoryStore()
+
 	repo := &FileRepository{}
 
-	// Skip if DB not initialized
-	if database.DB == nil {
-		t.Skip("Skipping test because database is not initialized")
-	}
-
-	// 🔥 Create dummy file
 	testFile := &models.File{
 		Filename: "test.txt",
 		Filepath: "/tmp/test.txt",
@@ -44,12 +40,9 @@ func TestGetByToken_ValidToken(t *testing.T) {
 }
 
 func TestGetByToken_InvalidToken(t *testing.T) {
-	repo := &FileRepository{}
+	ResetInMemoryStore()
 
-	// 🔥 Prevent nil pointer crash
-	if database.DB == nil {
-		t.Skip("Skipping test because database is not initialized")
-	}
+	repo := &FileRepository{}
 
 	invalidToken := "this-token-does-not-exist"
 

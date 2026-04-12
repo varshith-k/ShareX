@@ -1,37 +1,38 @@
-const API_BASE_URL = 'http://localhost:5000'; // Adjust this port if your backend runs elsewhere
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-/**
- * Fetches file metadata from the backend using a unique token.
- * @param {string} token - The file identifier from the URL.
- * @returns {Promise<Object>} - The file metadata (name, size, etc.)
- */
-export const fetchFileMetadata = async (token) => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/files/${token}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
+async function parseJSON(response) {
+  const data = await response.json().catch(() => ({}));
 
-        if (!response.ok) {
-            // If the token is invalid or server is down, throw an error
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to fetch metadata');
-        }
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Request failed');
+  }
 
-        return await response.json();
-    } catch (error) {
-        console.error("Error in fetchFileMetadata:", error);
-        throw error;
-    }
-};
+  return data;
+}
 
-/**
- * Generates the actual download URL for the file.
- * @param {string} token - The file identifier.
- * @returns {string} - The full URL to trigger the download.
- */
-export const getDownloadUrl = (token) => {
-    return `${API_BASE_URL}/download/${token}`;
-};
+export async function fetchFileMetadata(token) {
+  const response = await fetch(`${API_BASE_URL}/file/${token}`, {
+    headers: {
+      Accept: 'application/json',
+    },
+    method: 'GET',
+  });
+
+  return parseJSON(response);
+}
+
+export async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/upload`, {
+    body: formData,
+    method: 'POST',
+  });
+
+  return parseJSON(response);
+}
+
+export function getDownloadUrl(token) {
+  return `${API_BASE_URL}/download/${token}`;
+}

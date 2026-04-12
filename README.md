@@ -53,7 +53,7 @@ ShareX/
 ````
 
 ### 🔹 Frontend
-- Built using Vite + React
+- Built using Create React App + React
 - Uses React Router for navigation
 - Communicates with backend via REST APIs
 - Handles file upload and download UI
@@ -161,12 +161,137 @@ cd backend
 go run ./cmd/server
 ```
 
+### Auth and Ownership API Contract
+
+Authentication uses JWT bearer tokens.
+
+Flow:
+1. Register using `POST /auth/register`
+2. Login using `POST /auth/login` to receive a signed JWT
+3. Send `Authorization: Bearer <token>` for protected routes
+
+#### Register
+
+Endpoint: `POST /auth/register`
+
+Request:
+
+```json
+{
+    "name": "Varshith",
+    "email": "varshith@example.com",
+    "password": "strong-password"
+}
+```
+
+Success `201 Created`:
+
+```json
+{
+    "message": "User registered successfully",
+    "user": {
+        "id": 1,
+        "name": "Varshith",
+        "email": "varshith@example.com",
+        "createdAt": "2026-04-11T18:00:00Z"
+    }
+}
+```
+
+#### Login
+
+Endpoint: `POST /auth/login`
+
+Request:
+
+```json
+{
+    "email": "varshith@example.com",
+    "password": "strong-password"
+}
+```
+
+Success `200 OK`:
+
+```json
+{
+    "message": "Login successful",
+    "token": "<signed-jwt>",
+    "user": {
+        "id": 1,
+        "name": "Varshith",
+        "email": "varshith@example.com"
+    }
+}
+```
+
+Invalid credentials `401 Unauthorized`:
+
+```json
+{
+    "error": "Invalid email or password"
+}
+```
+
+#### Protected Routes
+
+These routes require `Authorization: Bearer <token>`:
+1. `POST /upload`
+2. `GET /me`
+3. `GET /me/files`
+4. `PATCH /me/files/revoke/{token}`
+5. `DELETE /me/files/{token}`
+
+Missing or invalid JWT returns `401 Unauthorized`.
+
+#### Ownership Rules
+
+1. Uploaded files are associated with the authenticated user using `owner_id`.
+2. Only the owner can revoke or delete a file link.
+3. Non-owner revoke/delete attempts return `403 Forbidden`.
+4. Revoked links remain in metadata but cannot be downloaded.
+5. Download for revoked links returns `404 Not Found`.
+
+#### Protected Request Examples
+
+Get current user:
+
+```http
+GET /me
+Authorization: Bearer <signed-jwt>
+```
+
+Get owned files:
+
+```http
+GET /me/files
+Authorization: Bearer <signed-jwt>
+```
+
+Revoke shared link:
+
+```http
+PATCH /me/files/revoke/abc123token
+Authorization: Bearer <signed-jwt>
+```
+
+Delete owned file:
+
+```http
+DELETE /me/files/abc123token
+Authorization: Bearer <signed-jwt>
+```
+
+#### Design Choice
+
+Anonymous uploads are explicitly rejected. File upload is a protected API and requires a valid JWT.
+
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm start
 ```
 
 
