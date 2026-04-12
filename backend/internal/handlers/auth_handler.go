@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 
 	"sharex-backend/internal/middleware"
@@ -196,5 +197,57 @@ func MyFilesHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{
 		"files": items,
+	})
+}
+
+func DeleteMyFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		utils.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	token := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/me/files/"))
+	if token == "" || strings.Contains(token, "/") {
+		utils.WriteJSONError(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
+
+	repo := repository.FileRepository{}
+	file, err := repo.GetByToken(token)
+	if err != nil {
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	if file.OwnerID == nil || *file.OwnerID != userID {
+		utils.WriteJSONError(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := os.Remove(file.Filepath); err != nil {
+		if os.IsNotExist(err) {
+			utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+			return
+		}
+
+		utils.WriteJSONError(w, "Unable to delete file", http.StatusInternalServerError)
+		return
+	}
+
+	if err := repo.DeleteByToken(token); err != nil {
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "File deleted successfully",
 	})
 }

@@ -165,6 +165,39 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 	return files, nil
 }
 
+func (r *FileRepository) DeleteByToken(token string) error {
+	if database.DB == nil {
+		inMemoryMu.Lock()
+		defer inMemoryMu.Unlock()
+
+		if _, ok := inMemoryFiles[token]; !ok {
+			return errors.New("file not found")
+		}
+
+		delete(inMemoryFiles, token)
+		return nil
+	}
+
+	query := `
+	DELETE FROM files
+	WHERE token = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := database.DB.Exec(ctx, query, token)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("file not found")
+	}
+
+	return nil
+}
+
 func ResetInMemoryStore() {
 	inMemoryMu.Lock()
 	defer inMemoryMu.Unlock()
