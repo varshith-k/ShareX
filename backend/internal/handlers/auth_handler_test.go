@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
 	"sharex-backend/internal/repository"
 	"sharex-backend/internal/services"
@@ -170,6 +171,66 @@ func TestLoginHandler_InvalidCredentials(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	http.HandlerFunc(LoginHandler).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected status 401, got %d", rr.Code)
+	}
+}
+
+func TestMeHandler_ReturnsAuthenticatedUser(t *testing.T) {
+	repository.ResetInMemoryUserStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	hash, err := services.HashPassword("pass12345")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.UserRepository{}
+	user := &models.User{Name: "Profile User", Email: "profile@example.com", PasswordHash: hash}
+	if err := repo.Create(user); err != nil {
+		t.Fatal(err)
+	}
+
+	token, err := services.GenerateJWT(user.ID, user.Email, user.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(MeHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", rr.Code)
+	}
+
+	var response struct {
+		User struct {
+			ID    int    `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email"`
+		} `json:"user"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Expected valid JSON response: %v", err)
+	}
+
+	if response.User.ID != user.ID || response.User.Name != user.Name || response.User.Email != user.Email {
+		t.Fatalf("Expected user profile to match authenticated user")
+	}
+}
+
+func TestMeHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/me", nil)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(MeHandler))
+	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {
 		t.Fatalf("Expected status 401, got %d", rr.Code)

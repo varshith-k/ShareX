@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
 	"sharex-backend/internal/repository"
 	"sharex-backend/internal/services"
@@ -123,6 +124,36 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"message": "Login successful",
 		"token":   token,
+		"user": map[string]any{
+			"id":    user.ID,
+			"name":  user.Name,
+			"email": user.Email,
+		},
+	})
+}
+
+func MeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		utils.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	repo := repository.UserRepository{}
+	user, err := repo.GetByID(userID)
+	if err != nil {
+		utils.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
 		"user": map[string]any{
 			"id":    user.ID,
 			"name":  user.Name,
