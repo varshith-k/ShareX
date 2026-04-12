@@ -177,3 +177,27 @@ These tests cover:
 ## Frontend Notes
 
 The frontend Sprint 3 work introduced the authentication foundation and dashboard workspace structure required for owner-only file management. The API service layer, auth context, protected routes, dashboard file listing, upload panel, and related tests were added as modular pieces so they can be integrated cleanly as the sprint branches merge.
+
+## Frontend Auth and Dashboard Flow Summary
+
+### Auth flow
+1. Registration requests are sent through `frontend/src/services/auth.js`
+2. Login requests are sent through `frontend/src/services/auth.js`
+3. JWT tokens are stored in `localStorage` under `authToken`
+4. `AuthProvider` restores the token and attempts to load the current user
+5. `ProtectedRoute` blocks unauthenticated access and redirects to `/login`
+
+### Dashboard flow
+1. The dashboard route is exposed at `/dashboard`
+2. File list data is requested from `GET /me/files`
+3. File list renders filename, size, and created date
+4. Loading, empty, and error states are handled in the dashboard UI
+5. The upload panel supports file selection and upload feedback messaging
+
+### Frontend Files Added
+- `frontend/src/services/auth.js`
+- `frontend/src/services/files.js`
+- `frontend/src/context/AuthContext.js`
+- `frontend/src/components/ProtectedRoute.js`
+- `frontend/src/components/DashboardUploadPanel.js`
+- `frontend/src/pages/Dashboard.js`
