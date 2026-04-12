@@ -48,6 +48,7 @@ func main() {
 	mux.HandleFunc("/auth/register", handlers.RegisterHandler)
 	mux.HandleFunc("/auth/login", handlers.LoginHandler)
 	mux.Handle("/me", middleware.AuthMiddleware(http.HandlerFunc(handlers.MeHandler)))
+	mux.Handle("/me/files", middleware.AuthMiddleware(http.HandlerFunc(handlers.MyFilesHandler)))
 
 	log.Printf("Server running on port %s\n", port)
 
