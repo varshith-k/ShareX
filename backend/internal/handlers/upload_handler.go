@@ -77,6 +77,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		Token:    token,
 		Size:     size,
 		OwnerID:  ownerID,
+		IsActive: true,
 	}
 
 	err = repo.Create(&newFile)

@@ -189,6 +189,7 @@ func MyFilesHandler(w http.ResponseWriter, r *http.Request) {
 			"filename":  file.Filename,
 			"token":     file.Token,
 			"size":      file.Size,
+			"isActive":  file.IsActive,
 			"createdAt": file.CreatedAt,
 		})
 	}
@@ -249,5 +250,47 @@ func DeleteMyFileHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "File deleted successfully",
+	})
+}
+
+func RevokeMyFileHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		utils.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	token := strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/me/files/revoke/"))
+	if token == "" || strings.Contains(token, "/") {
+		utils.WriteJSONError(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
+
+	repo := repository.FileRepository{}
+	file, err := repo.GetByToken(token)
+	if err != nil {
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	if file.OwnerID == nil || *file.OwnerID != userID {
+		utils.WriteJSONError(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	if err := repo.RevokeByToken(token); err != nil {
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "File link revoked successfully",
 	})
 }
