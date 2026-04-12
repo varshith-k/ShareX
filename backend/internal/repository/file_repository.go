@@ -20,6 +20,10 @@ var (
 )
 
 func (r *FileRepository) Create(file *models.File) error {
+	if !file.IsActive {
+		file.IsActive = true
+	}
+
 	if database.DB == nil {
 		inMemoryMu.Lock()
 		defer inMemoryMu.Unlock()
@@ -34,8 +38,8 @@ func (r *FileRepository) Create(file *models.File) error {
 	}
 
 	query := `
-	INSERT INTO files (filename, filepath, token, size, owner_id)
-	VALUES ($1, $2, $3, $4, $5)
+	INSERT INTO files (filename, filepath, token, size, owner_id, is_active)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	RETURNING id, created_at
 	`
 
@@ -48,6 +52,7 @@ func (r *FileRepository) Create(file *models.File) error {
 		file.Token,
 		file.Size,
 		file.OwnerID,
+		file.IsActive,
 	).Scan(&file.ID, &file.CreatedAt)
 }
 
@@ -66,7 +71,7 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	}
 
 	query := `
-	SELECT id, filename, filepath, token, size, owner_id, created_at
+	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at
 	FROM files
 	WHERE token = $1
 	`
@@ -84,6 +89,7 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 		&file.Token,
 		&file.Size,
 		&ownerID,
+		&file.IsActive,
 		&file.CreatedAt,
 	)
 
@@ -118,7 +124,7 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 	}
 
 	query := `
-	SELECT id, filename, filepath, token, size, owner_id, created_at
+	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at
 	FROM files
 	WHERE owner_id = $1
 	ORDER BY created_at DESC
@@ -145,6 +151,7 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 			&file.Token,
 			&file.Size,
 			&owner,
+			&file.IsActive,
 			&file.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -180,6 +187,41 @@ func (r *FileRepository) DeleteByToken(token string) error {
 
 	query := `
 	DELETE FROM files
+	WHERE token = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := database.DB.Exec(ctx, query, token)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("file not found")
+	}
+
+	return nil
+}
+
+func (r *FileRepository) RevokeByToken(token string) error {
+	if database.DB == nil {
+		inMemoryMu.Lock()
+		defer inMemoryMu.Unlock()
+
+		file, ok := inMemoryFiles[token]
+		if !ok {
+			return errors.New("file not found")
+		}
+
+		file.IsActive = false
+		return nil
+	}
+
+	query := `
+	UPDATE files
+	SET is_active = FALSE
 	WHERE token = $1
 	`
 

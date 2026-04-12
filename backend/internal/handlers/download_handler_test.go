@@ -106,3 +106,44 @@ func TestDownloadHandler_ReturnsStoredFile(t *testing.T) {
 		t.Fatalf("Expected downloaded content, got %q", body)
 	}
 }
+
+func TestDownloadHandler_RevokedFileCannotBeDownloaded(t *testing.T) {
+	repository.ResetInMemoryStore()
+
+	testFile, err := os.CreateTemp("", "sharex-revoked-*.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(testFile.Name())
+
+	if _, err := testFile.WriteString("revoked content"); err != nil {
+		t.Fatal(err)
+	}
+	if err := testFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	repo := &repository.FileRepository{}
+	err = repo.Create(&models.File{
+		Filename: "revoked.txt",
+		Filepath: testFile.Name(),
+		Token:    "revoked-token",
+		Size:     int64(len("revoked content")),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repo.RevokeByToken("revoked-token"); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/download/revoked-token", nil)
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(DownloadHandler).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("Expected 404 for revoked file, got %d", rr.Code)
+	}
+}

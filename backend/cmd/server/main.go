@@ -49,6 +49,7 @@ func main() {
 	mux.HandleFunc("/auth/login", handlers.LoginHandler)
 	mux.Handle("/me", middleware.AuthMiddleware(http.HandlerFunc(handlers.MeHandler)))
 	mux.Handle("/me/files", middleware.AuthMiddleware(http.HandlerFunc(handlers.MyFilesHandler)))
+	mux.Handle("/me/files/revoke/", middleware.AuthMiddleware(http.HandlerFunc(handlers.RevokeMyFileHandler)))
 	mux.Handle("/me/files/", middleware.AuthMiddleware(http.HandlerFunc(handlers.DeleteMyFileHandler)))
 
 	log.Printf("Server running on port %s\n", port)

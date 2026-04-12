@@ -9,5 +9,6 @@ type File struct {
 	Token     string
 	Size      int64
 	OwnerID   *int
+	IsActive  bool
 	CreatedAt time.Time
 }

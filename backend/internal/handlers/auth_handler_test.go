@@ -454,3 +454,94 @@ func TestDeleteMyFileHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
 		t.Fatalf("Expected status 401, got %d", rr.Code)
 	}
 }
+
+func TestRevokeMyFileHandler_Success(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	userID := 707
+	token, err := services.GenerateJWT(userID, "owner@example.com", "Owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.FileRepository{}
+	if err := repo.Create(&models.File{
+		Filename:  "revoke-me.txt",
+		Filepath:  "/tmp/revoke-me.txt",
+		Token:     "revoke-token",
+		Size:      10,
+		OwnerID:   &userID,
+		CreatedAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPatch, "/me/files/revoke/revoke-token", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(RevokeMyFileHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", rr.Code)
+	}
+
+	updated, err := repo.GetByToken("revoke-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if updated.IsActive {
+		t.Fatalf("Expected file to be revoked")
+	}
+}
+
+func TestRevokeMyFileHandler_ForbiddenForNonOwner(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	ownerID := 808
+	nonOwnerID := 909
+	token, err := services.GenerateJWT(nonOwnerID, "nonowner@example.com", "NonOwner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.FileRepository{}
+	if err := repo.Create(&models.File{
+		Filename:  "owner-file.txt",
+		Filepath:  "/tmp/owner-file.txt",
+		Token:     "owner-revoke-token",
+		Size:      8,
+		OwnerID:   &ownerID,
+		CreatedAt: time.Now(),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodPatch, "/me/files/revoke/owner-revoke-token", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(RevokeMyFileHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("Expected status 403, got %d", rr.Code)
+	}
+}
+
+func TestRevokeMyFileHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPatch, "/me/files/revoke/any-token", nil)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(RevokeMyFileHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected status 401, got %d", rr.Code)
+	}
+}

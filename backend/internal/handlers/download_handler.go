@@ -30,6 +30,11 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !fileMeta.IsActive {
+		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		return
+	}
+
 	file, err := os.Open(fileMeta.Filepath)
 	if err != nil {
 		utils.WriteJSONError(w, "File missing on server", http.StatusNotFound)
