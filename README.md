@@ -196,6 +196,13 @@ Invalid credentials response (`401 Unauthorized`):
 }
 ```
 
+`POST /upload`
+
+Design choice for Sprint 3:
+1. Upload is a protected route and requires a valid JWT in `Authorization: Bearer <token>`.
+2. Anonymous uploads are explicitly rejected with `401 Unauthorized`.
+3. Authenticated uploads are associated with the authenticated user via `files.owner_id`.
+
 ### Frontend
 
 ```bash

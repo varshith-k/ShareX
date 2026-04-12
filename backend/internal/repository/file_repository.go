@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sync"
 	"time"
@@ -33,8 +34,8 @@ func (r *FileRepository) Create(file *models.File) error {
 	}
 
 	query := `
-	INSERT INTO files (filename, filepath, token, size)
-	VALUES ($1, $2, $3, $4)
+	INSERT INTO files (filename, filepath, token, size, owner_id)
+	VALUES ($1, $2, $3, $4, $5)
 	RETURNING id, created_at
 	`
 
@@ -46,6 +47,7 @@ func (r *FileRepository) Create(file *models.File) error {
 		file.Filepath,
 		file.Token,
 		file.Size,
+		file.OwnerID,
 	).Scan(&file.ID, &file.CreatedAt)
 }
 
@@ -64,7 +66,7 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	}
 
 	query := `
-	SELECT id, filename, filepath, token, size, created_at
+	SELECT id, filename, filepath, token, size, owner_id, created_at
 	FROM files
 	WHERE token = $1
 	`
@@ -73,6 +75,7 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	defer cancel()
 
 	var file models.File
+	var ownerID sql.NullInt64
 
 	err := database.DB.QueryRow(ctx, query, token).Scan(
 		&file.ID,
@@ -80,11 +83,17 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 		&file.Filepath,
 		&file.Token,
 		&file.Size,
+		&ownerID,
 		&file.CreatedAt,
 	)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if ownerID.Valid {
+		id := int(ownerID.Int64)
+		file.OwnerID = &id
 	}
 
 	return &file, nil

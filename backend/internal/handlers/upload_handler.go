@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
 	"sharex-backend/internal/repository"
 	"sharex-backend/internal/utils"
@@ -65,11 +66,17 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	repo := repository.FileRepository{}
 
+	var ownerID *int
+	if uid, ok := middleware.UserIDFromContext(r.Context()); ok {
+		ownerID = &uid
+	}
+
 	newFile := models.File{
 		Filename: handler.Filename,
 		Filepath: fp,
 		Token:    token,
 		Size:     size,
+		OwnerID:  ownerID,
 	}
 
 	err = repo.Create(&newFile)

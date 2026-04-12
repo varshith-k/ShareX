@@ -8,5 +8,6 @@ type File struct {
 	Filepath  string
 	Token     string
 	Size      int64
+	OwnerID   *int
 	CreatedAt time.Time
 }
