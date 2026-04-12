@@ -116,6 +116,46 @@ func (r *UserRepository) GetByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
+func (r *UserRepository) GetByID(id int) (*models.User, error) {
+	if database.DB == nil {
+		inMemoryUsersMu.RLock()
+		defer inMemoryUsersMu.RUnlock()
+
+		for _, user := range inMemoryUsers {
+			if user.ID == id {
+				userCopy := *user
+				return &userCopy, nil
+			}
+		}
+
+		return nil, errors.New("user not found")
+	}
+
+	query := `
+	SELECT id, name, email, password_hash, created_at
+	FROM users
+	WHERE id = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user models.User
+
+	err := database.DB.QueryRow(ctx, query, id).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.PasswordHash,
+		&user.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 func ResetInMemoryUserStore() {
 	inMemoryUsersMu.Lock()
 	defer inMemoryUsersMu.Unlock()
