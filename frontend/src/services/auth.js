@@ -10,4 +10,30 @@ async function parseJSON(response) {
   return data;
 }
 
-export { API_BASE_URL, parseJSON };
+async function registerUser(userData) {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(userData),
+  });
+
+  return parseJSON(response);
+}
+
+async function loginUser(credentials) {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  return parseJSON(response);
+}
+
+export { API_BASE_URL, parseJSON, registerUser, loginUser };
