@@ -4,6 +4,7 @@ import Download from './pages/Download';
 import DownloadPage from './pages/DownloadPage';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
@@ -23,11 +24,12 @@ function App() {
         </header>
 
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/download" element={<Download />} />
-          <Route path="/download/:token" element={<DownloadPage />} />
-          <Route path="*" element={<Home />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/download" element={<Download />} />
+            <Route path="/download/:token" element={<DownloadPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="*" element={<Home />} />
         </Routes>
       </div>
     </Router>
