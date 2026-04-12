@@ -1,5 +1,5 @@
 package handlers
-
+import "time"
 import (
 	"encoding/json"
 	"net/http"
@@ -37,5 +37,21 @@ func MetadataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	isExpired := false
+	if file.ExpiresAt != nil {
+		if time.Now().After(*file.ExpiresAt) {
+			isExpired = true
+		}
+	}
+
+	response := map[string]interface{}{
+		"filename":   file.Filename,
+		"size":       file.Size,
+		"token":      file.Token,
+		"createdAt":  file.CreatedAt,
+		"expiresAt":  file.ExpiresAt,
+		"isExpired":  isExpired,
+	}
+
 	json.NewEncoder(w).Encode(response)
 }
