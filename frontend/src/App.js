@@ -4,6 +4,7 @@ import Download from './pages/Download';
 import DownloadPage from './pages/DownloadPage';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
+import Login from "./pages/Login";
 
 function App() {
   return (
@@ -27,7 +28,8 @@ function App() {
           <Route path="/upload" element={<Upload />} />
           <Route path="/download" element={<Download />} />
           <Route path="/download/:token" element={<DownloadPage />} />
-          <Route path="*" element={<Home />} />
+          <Route path="/login" element={<Login />} />   
+          <Route path="*" element={<Home />} />        
         </Routes>
       </div>
     </Router>
