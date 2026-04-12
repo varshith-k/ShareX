@@ -1,6 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-function DashboardUploadPanel() {
+function DashboardUploadPanel({ onUploadSuccess }) {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [message, setMessage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  function handleFileChange(event) {
+    const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+    setSelectedFile(file);
+    setMessage('');
+  }
+
+  async function handleUpload() {
+    if (!selectedFile) {
+      setMessage('Please choose a file before uploading.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      setMessage('Upload integration will be connected in the next step.');
+
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
+    } catch (error) {
+      setMessage('Unable to upload file right now.');
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <section style={styles.card}>
       <h3 style={styles.title}>Upload Panel</h3>
@@ -9,11 +40,22 @@ function DashboardUploadPanel() {
       </p>
 
       <div style={styles.fieldGroup}>
-        <input type="file" style={styles.input} />
+        <input type="file" onChange={handleFileChange} style={styles.input} />
       </div>
 
-      <button type="button" style={styles.button}>
-        Upload File
+      {selectedFile && (
+        <p style={styles.fileInfo}>Selected: {selectedFile.name}</p>
+      )}
+
+      {message && <p style={styles.message}>{message}</p>}
+
+      <button
+        type="button"
+        onClick={handleUpload}
+        style={styles.button}
+        disabled={isUploading}
+      >
+        {isUploading ? 'Uploading...' : 'Upload File'}
       </button>
     </section>
   );
@@ -40,6 +82,14 @@ const styles = {
   },
   input: {
     width: '100%',
+  },
+  fileInfo: {
+    color: '#334155',
+    margin: '0 0 12px',
+  },
+  message: {
+    color: '#475569',
+    margin: '0 0 12px',
   },
   button: {
     background: '#1d4ed8',
