@@ -10,6 +10,13 @@ async function parseJSON(response) {
   return data;
 }
 
+function getAuthHeaders(token) {
+  return {
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
 async function registerUser(userData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
@@ -36,4 +43,20 @@ async function loginUser(credentials) {
   return parseJSON(response);
 }
 
-export { API_BASE_URL, parseJSON, registerUser, loginUser };
+async function getCurrentUser(token) {
+  const response = await fetch(`${API_BASE_URL}/me`, {
+    method: 'GET',
+    headers: getAuthHeaders(token),
+  });
+
+  return parseJSON(response);
+}
+
+export {
+  API_BASE_URL,
+  parseJSON,
+  getAuthHeaders,
+  registerUser,
+  loginUser,
+  getCurrentUser,
+};
