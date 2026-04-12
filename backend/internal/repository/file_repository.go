@@ -99,6 +99,72 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	return &file, nil
 }
 
+func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
+	if database.DB == nil {
+		inMemoryMu.RLock()
+		defer inMemoryMu.RUnlock()
+
+		files := make([]models.File, 0)
+		for _, file := range inMemoryFiles {
+			if file.OwnerID == nil || *file.OwnerID != ownerID {
+				continue
+			}
+
+			fileCopy := *file
+			files = append(files, fileCopy)
+		}
+
+		return files, nil
+	}
+
+	query := `
+	SELECT id, filename, filepath, token, size, owner_id, created_at
+	FROM files
+	WHERE owner_id = $1
+	ORDER BY created_at DESC
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := database.DB.Query(ctx, query, ownerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	files := make([]models.File, 0)
+	for rows.Next() {
+		var file models.File
+		var owner sql.NullInt64
+
+		if err := rows.Scan(
+			&file.ID,
+			&file.Filename,
+			&file.Filepath,
+			&file.Token,
+			&file.Size,
+			&owner,
+			&file.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		if owner.Valid {
+			id := int(owner.Int64)
+			file.OwnerID = &id
+		}
+
+		files = append(files, file)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return files, nil
+}
+
 func ResetInMemoryStore() {
 	inMemoryMu.Lock()
 	defer inMemoryMu.Unlock()

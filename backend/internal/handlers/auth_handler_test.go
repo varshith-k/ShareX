@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
@@ -230,6 +231,99 @@ func TestMeHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	handler := middleware.AuthMiddleware(http.HandlerFunc(MeHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("Expected status 401, got %d", rr.Code)
+	}
+}
+
+func TestMyFilesHandler_ReturnsAuthenticatedUsersFiles(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	userID := 101
+	otherUserID := 202
+
+	repo := repository.FileRepository{}
+	err := repo.Create(&models.File{
+		Filename:  "mine-1.txt",
+		Filepath:  "/tmp/mine-1.txt",
+		Token:     "mine-token-1",
+		Size:      10,
+		OwnerID:   &userID,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = repo.Create(&models.File{
+		Filename:  "mine-2.txt",
+		Filepath:  "/tmp/mine-2.txt",
+		Token:     "mine-token-2",
+		Size:      20,
+		OwnerID:   &userID,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = repo.Create(&models.File{
+		Filename:  "others.txt",
+		Filepath:  "/tmp/others.txt",
+		Token:     "other-token",
+		Size:      30,
+		OwnerID:   &otherUserID,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	token, err := services.GenerateJWT(userID, "me@example.com", "Me")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/me/files", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(MyFilesHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", rr.Code)
+	}
+
+	var response struct {
+		Files []struct {
+			Token string `json:"token"`
+		} `json:"files"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Expected valid JSON response: %v", err)
+	}
+
+	if len(response.Files) != 2 {
+		t.Fatalf("Expected 2 files, got %d", len(response.Files))
+	}
+
+	for _, f := range response.Files {
+		if f.Token == "other-token" {
+			t.Fatalf("Expected only authenticated user's files")
+		}
+	}
+}
+
+func TestMyFilesHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/me/files", nil)
+	req.Header.Set("Authorization", "Bearer invalid-token")
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(MyFilesHandler))
 	handler.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusUnauthorized {

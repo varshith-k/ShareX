@@ -161,3 +161,40 @@ func MeHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+func MyFilesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		utils.WriteJSONError(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	repo := repository.FileRepository{}
+	files, err := repo.ListByOwnerID(userID)
+	if err != nil {
+		utils.WriteJSONError(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	items := make([]map[string]any, 0, len(files))
+	for _, file := range files {
+		items = append(items, map[string]any{
+			"id":        file.ID,
+			"filename":  file.Filename,
+			"token":     file.Token,
+			"size":      file.Size,
+			"createdAt": file.CreatedAt,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"files": items,
+	})
+}
