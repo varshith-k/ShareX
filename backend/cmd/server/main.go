@@ -44,6 +44,8 @@ func main() {
 
 	mux.HandleFunc("/file/", handlers.MetadataHandler)
 
+	mux.HandleFunc("/auth/register", handlers.RegisterHandler)
+
 	log.Printf("Server running on port %s\n", port)
 
 	if err := http.ListenAndServe(":"+port, withCORS(mux)); err != nil {
