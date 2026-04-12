@@ -9,33 +9,53 @@ const formatFileSize = (size) => {
 
   const bytes = Number(size);
 
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(2)} KB`;
-  }
-
-  if (bytes < 1024 * 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  }
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
 const formatDate = (value) => {
-  if (!value) {
-    return 'Unavailable';
-  }
+  if (!value) return 'Unavailable';
 
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleString();
+};
+
+const getExpiryState = (metadata) => {
+  if (!metadata) {
+    return {
+      label: 'Unavailable',
+      value: 'Unavailable',
+      isExpired: false,
+      isPermanent: false,
+    };
+  }
+
+  const explicitExpired = metadata.isExpired === true;
+
+  if (!metadata.expiresAt) {
+    return {
+      label: 'No expiration',
+      value: 'This file link does not expire',
+      isExpired: false,
+      isPermanent: true,
+    };
+  }
+
+  const expiryDate = new Date(metadata.expiresAt);
+  const derivedExpired = !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
+  const isExpired = explicitExpired || derivedExpired;
+
+  return {
+    label: isExpired ? 'Expired' : 'Active until',
+    value: formatDate(metadata.expiresAt),
+    isExpired,
+    isPermanent: false,
+  };
 };
 
 const DownloadPage = () => {
@@ -101,6 +121,8 @@ const DownloadPage = () => {
     );
   }
 
+  const expiry = getExpiryState(metadata);
+
   return (
     <main style={styles.page}>
       <section style={styles.wrapper}>
@@ -112,6 +134,20 @@ const DownloadPage = () => {
           <p style={styles.subtitle}>
             Review the file details below and download it securely.
           </p>
+
+          <div
+            style={{
+              ...styles.expiryBanner,
+              ...(expiry.isExpired
+                ? styles.expiryBannerExpired
+                : expiry.isPermanent
+                ? styles.expiryBannerPermanent
+                : styles.expiryBannerActive),
+            }}
+          >
+            <span style={styles.expiryBannerLabel}>{expiry.label}</span>
+            <span style={styles.expiryBannerValue}>{expiry.value}</span>
+          </div>
 
           <div style={styles.metaGrid}>
             <div style={styles.metaItem}>
@@ -160,8 +196,7 @@ const DownloadPage = () => {
 
 const styles = {
   page: {
-    background:
-      'linear-gradient(180deg, #eff6ff 0%, #f8fafc 45%, #ffffff 100%)',
+    background: 'linear-gradient(180deg, #eff6ff 0%, #f8fafc 45%, #ffffff 100%)',
     minHeight: 'calc(100vh - 110px)',
     padding: '32px 20px 56px',
   },
@@ -230,7 +265,38 @@ const styles = {
     color: '#475569',
     fontSize: '1rem',
     lineHeight: 1.6,
-    margin: '0 0 28px',
+    margin: '0 0 20px',
+  },
+  expiryBanner: {
+    borderRadius: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginBottom: '24px',
+    padding: '16px 18px',
+  },
+  expiryBannerActive: {
+    background: '#eff6ff',
+    border: '1px solid #bfdbfe',
+  },
+  expiryBannerExpired: {
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+  },
+  expiryBannerPermanent: {
+    background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+  },
+  expiryBannerLabel: {
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    color: '#475569',
+  },
+  expiryBannerValue: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: '#0f172a',
   },
   metaGrid: {
     display: 'grid',
