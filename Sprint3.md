@@ -120,3 +120,60 @@ Authorization: Bearer <signed-jwt>
 DELETE /me/files/abc123token
 Authorization: Bearer <signed-jwt>
 ```
+
+## Frontend Work Completed
+
+### FE3-03: Frontend auth API service
+- Created `frontend/src/services/auth.js`
+- Added reusable auth service methods:
+  - `registerUser()`
+  - `loginUser()`
+  - `getCurrentUser()`
+- Added shared auth header and response parsing helpers
+
+### FE3-04: Auth context/provider
+- Created `frontend/src/context/AuthContext.js`
+- Added token and current user state
+- Added `login`, `register`, and `logout` actions
+- Added localStorage token persistence
+- Added current user loading flow and derived auth state
+
+### FE3-05: Protected route wrapper
+- Created `frontend/src/components/ProtectedRoute.js`
+- Added redirect to `/login` for unauthenticated users
+- Added loading state handling while auth state is restoring
+
+### FE3-06: Dashboard page shell
+- Created `frontend/src/pages/Dashboard.js`
+- Added dashboard heading, layout structure, and placeholder sections
+- Added `/dashboard` route
+
+### FE3-07: Dashboard file list integration
+- Created `frontend/src/services/files.js`
+- Added `getMyFiles()` for `GET /me/files`
+- Connected dashboard file list to API
+- Added loading, error, empty, and metadata display states
+
+### FE3-08: Dashboard upload panel
+- Created `frontend/src/components/DashboardUploadPanel.js`
+- Added file input and upload button UI
+- Integrated upload panel into dashboard
+- Added selected file state and feedback messages
+
+## Frontend Unit Tests
+
+Added frontend unit tests for:
+- `frontend/src/components/ProtectedRoute.test.js`
+- `frontend/src/components/DashboardUploadPanel.test.js`
+- `frontend/src/pages/Home.test.js`
+
+These tests cover:
+- Protected route authenticated rendering
+- Protected route loading state
+- Upload panel rendering and file selection behavior
+- Upload panel validation message when no file is selected
+- Home page content rendering
+
+## Frontend Notes
+
+The frontend Sprint 3 work introduced the authentication foundation and dashboard workspace structure required for owner-only file management. The API service layer, auth context, protected routes, dashboard file listing, upload panel, and related tests were added as modular pieces so they can be integrated cleanly as the sprint branches merge.
