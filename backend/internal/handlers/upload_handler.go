@@ -50,8 +50,13 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 🔥 Get file
 	file, handler, err := r.FormFile("file")
+	if err != nil {
+		utils.WriteJSONError(w, "File not found in request", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
 
-		buffer := make([]byte, 512)
+	buffer := make([]byte, 512)
 	_, err = file.Read(buffer)
 	if err != nil {
 		utils.WriteJSONError(w, "Unable to read file", http.StatusBadRequest)
@@ -63,9 +68,11 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// allowed types
 	allowedTypes := map[string]bool{
-		"image/jpeg": true,
-		"image/png":  true,
-		"application/pdf": true,
+		"image/jpeg":              true,
+		"image/png":               true,
+		"application/pdf":         true,
+		"application/octet-stream": true,
+		"text/plain; charset=utf-8": true,
 	}
 
 	// validate
@@ -76,12 +83,6 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// reset file pointer
 	file.Seek(0, 0)
-
-	if err != nil {
-		utils.WriteJSONError(w, "File not found in request", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
 
 	// 🔥 Empty file check
 	if handler.Size == 0 {
