@@ -105,9 +105,14 @@ const DownloadPage = () => {
       }
     };
 
-    if (token) {
-      getDetails();
+    if (!token) {
+      setMetadata(null);
+      setErrorMessage('Missing file token');
+      setLoading(false);
+      return;
     }
+
+    getDetails();
   }, [token]);
 
   const handleDownload = () => {
