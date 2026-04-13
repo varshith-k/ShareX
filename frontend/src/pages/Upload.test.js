@@ -4,6 +4,11 @@ import Upload from './Upload';
 import * as api from '../services/api';
 
 jest.mock('../services/api');
+jest.mock('../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    token: '',
+  }),
+}));
 
 describe('Upload page', () => {
   beforeEach(() => {
@@ -41,7 +46,7 @@ describe('Upload page', () => {
     fireEvent.click(screen.getByRole('button', { name: /upload/i }));
 
     await waitFor(() => {
-      expect(api.uploadFile).toHaveBeenCalledWith(file);
+      expect(api.uploadFile).toHaveBeenCalledWith(file, '');
     });
 
     expect(await screen.findByText(/Upload successful/i)).toBeInTheDocument();

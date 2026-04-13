@@ -1,13 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { uploadFile } from '../services/api';
 
-function Upload() {
+function Upload({ onUploaded, token }) {
+  const auth = useAuth();
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('');
   const [progress, setProgress] = useState(0);
   const [shareData, setShareData] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const activeToken = token || auth.token;
 
   const shareLink = useMemo(() => {
     if (!shareData?.token) {
@@ -29,10 +32,13 @@ function Upload() {
       setShareData(null);
       setStatus('Uploading file to the backend...');
 
-      const response = await uploadFile(file);
+      const response = await uploadFile(file, activeToken);
       setProgress(100);
       setShareData(response);
       setStatus('Upload successful. Your share link is ready.');
+      if (onUploaded) {
+        await onUploaded();
+      }
     } catch (error) {
       setProgress(0);
       setStatus(error.message || 'Upload failed. Backend may not be ready yet.');
