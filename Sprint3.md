@@ -345,6 +345,14 @@ Success `200 OK`:
 <<<<<<< HEAD
 ## Frontend Work Completed
 
+### FE3-01: Login page UI
+- Created login page for email/password authentication
+- Added basic validation and login route setup
+
+### FE3-02: Registration page UI
+- Created registration page for name, email, and password
+- Added client-side validation and registration route setup
+
 ### FE3-03: Frontend auth API service
 - Created `frontend/src/services/auth.js`
 - Added reusable auth service methods:
