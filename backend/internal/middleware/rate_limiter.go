@@ -8,15 +8,16 @@ import (
 )
 
 type visitor struct {
-	lastSeen time.Time
 	tokens   int
+	lastSeen time.Time
 }
 
 var (
 	visitors = make(map[string]*visitor)
 	mu       sync.Mutex
-	rate     = 5                // max 5 requests
-	interval = 1 * time.Minute // per minute
+
+	maxRequests = 5
+	window      = 1 * time.Minute
 )
 
 func getVisitor(ip string) *visitor {
@@ -26,12 +27,11 @@ func getVisitor(ip string) *visitor {
 	v, exists := visitors[ip]
 	if !exists {
 		v = &visitor{
+			tokens:   maxRequests,
 			lastSeen: time.Now(),
-			tokens:   rate,
 		}
 		visitors[ip] = v
 	}
-
 	return v
 }
 
@@ -43,9 +43,8 @@ func RateLimiter(next http.Handler) http.Handler {
 
 		mu.Lock()
 
-		// refill tokens based on time passed
-		if time.Since(v.lastSeen) > interval {
-			v.tokens = rate
+		if time.Since(v.lastSeen) > window {
+			v.tokens = maxRequests
 			v.lastSeen = time.Now()
 		}
 
