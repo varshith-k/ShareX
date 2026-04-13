@@ -9,17 +9,71 @@ ShareX is a full-stack file sharing application built for a 4-sprint software en
 - Bhoomika Mudi: Frontend upload flow, auth UI, frontend tests
 - Harshini Sangem: Frontend download flow, dashboard/download experience, frontend tests
 
-## Sprint 3 Status
+## Agile Development Plan
 
-Sprint 3 extends the Sprint 2 working model into an authenticated application:
+The project is being developed across 4 sprints.
 
-- Users can register and log in
-- Authenticated users can upload files
-- Upload responses return a token and download URL
-- Users can view their owned files in a dashboard
-- Users can revoke or delete files they own
-- Public download pages can fetch metadata and download active files
-- Frontend and backend both include unit tests
+### Sprint 1 - Foundation and MVP
+
+Completed:
+
+- Backend project setup
+- Core file upload endpoint
+- File token generation
+- Metadata handling
+- File download endpoint
+- Basic frontend flow for upload and download
+
+Status:
+
+- Sprint 1 completed
+
+### Sprint 2 - Integration and Testing
+
+Completed:
+
+- Frontend and backend integration
+- Upload validation improvements
+- Metadata endpoint integration
+- Basic Cypress coverage
+- Frontend unit tests
+- Backend unit tests
+- Backend API documentation in Sprint 2 deliverables
+
+Status:
+
+- Sprint 2 completed
+
+### Sprint 3 - Authentication and Ownership Features
+
+Completed:
+
+- User registration
+- User login with JWT
+- Protected routes for authenticated actions
+- Authenticated upload flow
+- User dashboard for owned files
+- Revoke and delete actions for owned files
+- Updated frontend and backend unit tests
+- Updated backend API documentation in Sprint 3 submission
+- Improved public download/share flow
+
+Status:
+
+- Sprint 3 completed
+
+### Sprint 4 - Remaining Work
+
+Planned / left to complete:
+
+- Deployment of frontend and backend to a live environment
+- Production-ready environment configuration
+- README updates for final project usage and deployment
+- Final Cypress expansion and full regression checks
+- Final backend API documentation cleanup
+- Live user testing and feedback collection
+- Final project demo/pitch preparation
+- Sprint 4 submission documentation and closing polish
 
 ## Tech Stack
 
@@ -234,11 +288,15 @@ GET /me/files
 Authorization: Bearer <jwt-token>
 ```
 
+## Current Status
+
+The repository on `main` now reflects the final Sprint 3 submission state. The application supports authenticated uploads, protected user file management, and public token-based downloads with frontend and backend test coverage.
+
 ## Submission Notes
 
 For Sprint 3 submission materials, see:
 
-- [Sprint3.md](/Users/varshith/Downloads/ShareX/Sprint3.md)
+- [Sprint3.md](./Sprint3.md)
 
 That document includes:
 
