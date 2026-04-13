@@ -39,7 +39,13 @@ func main() {
 
 	mux.HandleFunc("/health", handlers.HealthHandler)
 
-	mux.Handle("/upload", middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)))
+	mux.Handle("/upload",
+		middleware.LoggingMiddleware(
+			middleware.RateLimiter(
+				middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)),
+			),
+		),
+	)
 
 	mux.HandleFunc("/download/", handlers.DownloadHandler)
 
