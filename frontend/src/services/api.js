@@ -10,6 +10,16 @@ async function parseJSON(response) {
   return data;
 }
 
+function buildHeaders(token, headers = {}) {
+  const finalHeaders = { ...headers };
+
+  if (token) {
+    finalHeaders.Authorization = `Bearer ${token}`;
+  }
+
+  return finalHeaders;
+}
+
 export async function fetchFileMetadata(token) {
   const response = await fetch(`${API_BASE_URL}/file/${token}`, {
     headers: {
@@ -21,12 +31,13 @@ export async function fetchFileMetadata(token) {
   return parseJSON(response);
 }
 
-export async function uploadFile(file) {
+export async function uploadFile(file, token) {
   const formData = new FormData();
   formData.append('file', file);
 
   const response = await fetch(`${API_BASE_URL}/upload`, {
     body: formData,
+    headers: buildHeaders(token),
     method: 'POST',
   });
 
@@ -35,4 +46,60 @@ export async function uploadFile(file) {
 
 export function getDownloadUrl(token) {
   return `${API_BASE_URL}/download/${token}`;
+}
+
+export async function registerUser(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    body: JSON.stringify(payload),
+    headers: buildHeaders('', { 'Content-Type': 'application/json' }),
+    method: 'POST',
+  });
+
+  return parseJSON(response);
+}
+
+export async function loginUser(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    body: JSON.stringify(payload),
+    headers: buildHeaders('', { 'Content-Type': 'application/json' }),
+    method: 'POST',
+  });
+
+  return parseJSON(response);
+}
+
+export async function getCurrentUser(token) {
+  const response = await fetch(`${API_BASE_URL}/me`, {
+    headers: buildHeaders(token, { Accept: 'application/json' }),
+    method: 'GET',
+  });
+
+  return parseJSON(response);
+}
+
+export async function fetchMyFiles(token) {
+  const response = await fetch(`${API_BASE_URL}/me/files`, {
+    headers: buildHeaders(token, { Accept: 'application/json' }),
+    method: 'GET',
+  });
+
+  return parseJSON(response);
+}
+
+export async function revokeMyFile(fileToken, token) {
+  const response = await fetch(`${API_BASE_URL}/me/files/revoke/${fileToken}`, {
+    headers: buildHeaders(token, { Accept: 'application/json' }),
+    method: 'PATCH',
+  });
+
+  return parseJSON(response);
+}
+
+export async function deleteMyFile(fileToken, token) {
+  const response = await fetch(`${API_BASE_URL}/me/files/${fileToken}`, {
+    headers: buildHeaders(token, { Accept: 'application/json' }),
+    method: 'DELETE',
+  });
+
+  return parseJSON(response);
 }

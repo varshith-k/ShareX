@@ -1,36 +1,69 @@
 import React from 'react';
 import { BrowserRouter as Router, Link, Route, Routes } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Dashboard from './pages/Dashboard';
 import Download from './pages/Download';
 import DownloadPage from './pages/DownloadPage';
 import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import Upload from './pages/Upload';
+
+function AppShell() {
+  const { user } = useAuth();
+
+  return (
+    <div className="app-shell">
+      <header style={styles.header}>
+        <div>
+          <p style={styles.eyebrow}>Sprint 3 Authenticated Model</p>
+          <h1 style={styles.title}>ShareX File Sharing</h1>
+        </div>
+
+        <nav style={styles.nav}>
+          <Link to="/" style={styles.primaryLink}>Home</Link>
+          {user ? <Link to="/dashboard" style={styles.link}>Dashboard</Link> : <Link to="/login" style={styles.link}>Login</Link>}
+          {!user && <Link to="/register" style={styles.link}>Register</Link>}
+          <Link to="/download" style={styles.link}>Find a file</Link>
+        </nav>
+      </header>
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/dashboard"
+          element={(
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/upload"
+          element={(
+            <ProtectedRoute>
+              <Upload />
+            </ProtectedRoute>
+          )}
+        />
+        <Route path="/download" element={<Download />} />
+        <Route path="/download/:token" element={<DownloadPage />} />
+        <Route path="*" element={<Home />} />
+      </Routes>
+    </div>
+  );
+}
 
 function App() {
   return (
-    <Router>
-      <div className="app-shell">
-        <header style={styles.header}>
-          <div>
-            <p style={styles.eyebrow}>Sprint 2 Working Model</p>
-            <h1 style={styles.title}>ShareX File Sharing</h1>
-          </div>
-
-          <nav style={styles.nav}>
-            <Link to="/" style={styles.primaryLink}>Home</Link>
-            <Link to="/upload" style={styles.link}>Share a file</Link>
-            <Link to="/download" style={styles.link}>Find a file</Link>
-          </nav>
-        </header>
-
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/download" element={<Download />} />
-          <Route path="/download/:token" element={<DownloadPage />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppShell />
+      </Router>
+    </AuthProvider>
   );
 }
 

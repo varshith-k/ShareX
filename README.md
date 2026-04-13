@@ -1,322 +1,306 @@
-# 🚀 ShareX – Secure File Sharing Platform
+# ShareX
 
-## 👥 Team Structure
+ShareX is a full-stack file sharing application built for a 4-sprint software engineering project. By the end of Sprint 3, the project supports authenticated file uploads, token-based downloads, file metadata lookup, and owner-managed file actions through an integrated React frontend and Go backend.
 
-The team is divided into:
+## Team
 
-* Backend Core Development & Backend Feature Implementation<br>
-Vishnu Sai Varshith Kaki - back-end<br>
-Rohith Reddy Vaka - back-end<br>
-* Frontend Foundation & Frontend Integration<br>
-Bhoomika Mudi - front-end<br>
-Harshini Sangem - front-end
+- Varshith Kaki: Backend integration, validation, Sprint integration, final submission
+- Rohit Reddy: Backend API documentation, metadata/auth backend coverage
+- Bhoomika Mudi: Frontend upload flow, auth UI, frontend tests
+- Harshini Sangem: Frontend download flow, dashboard/download experience, frontend tests
 
-All tasks are tracked using GitHub Issues and completed through Pull Requests following Agile workflow.
+## Agile Development Plan
 
-## 📌 Project Overview
+The project is being developed across 4 sprints.
 
-**ShareX** is a file sharing web application that allows users to securely upload, store, and share files with others through generated links. The platform focuses on simplicity, speed, and a modern user experience.
+### Sprint 1 - Foundation and MVP
 
-The system is built using:
+Completed:
 
-- ⚛️ **React** (Frontend)
-- 🐹 **Go** (Backend REST API)
-- 🐘 **PostgreSQL** (Database)
-
-This project is developed as part of a Software Engineering course using an **Agile methodology across 4 sprints**.
-
----
-
-## 🎯 Project Objective
-
-The objective of ShareX is to design and implement a scalable, modular, and secure file-sharing system while applying:
-
-- Agile development practices
-- Clean architecture principles
-- RESTful API design
-- PostgreSQL database integration
-- & Git workflow (Issues → Branches → Pull Requests → Code Reviews)
-
----
-
-## 🏗 System Architecture
-
-The project follows a **monorepo structure** with clear separation of concerns:
-
-```
-
-ShareX/
-├── frontend/     → React application (User Interface)
-├── backend/      → Go REST API
-├── README.md
-
-````
-
-### 🔹 Frontend
-- Built using Create React App + React
-- Uses React Router for navigation
-- Communicates with backend via REST APIs
-- Handles file upload and download UI
-
-### 🔹 Backend
-- Built using Go
-- Implements RESTful APIs
-- Generates secure file tokens
-- Streams files efficiently
-- Connects to PostgreSQL for persistent storage
-
-### 🔹 Database (PostgreSQL)
-Stores file metadata including:
-- Unique token
-- Filename
-- File size
-- File path
-- Created timestamp
-
----
-
-## 🔄 Agile Development Plan
-
-The project will be developed across **4 Sprints**.
-
----
-
-### 🟢 Sprint 1 – Foundation & MVP (Current Sprint)
-
-**Planned Deliverables:**
 - Backend project setup
-- PostgreSQL integration
-- Files table creation
-- File upload endpoint
-- Secure token generation
-- Metadata storage in PostgreSQL
-- File metadata retrieval endpoint
+- Core file upload endpoint
+- File token generation
+- Metadata handling
 - File download endpoint
-- Basic React frontend
-- Working Upload → Share → Download flow
+- Basic frontend flow for upload and download
 
-**Sprint Goal:**  
-Deliver a functional Minimum Viable Product (MVP) demonstrating end-to-end file sharing.
+Status:
 
----
+- Sprint 1 completed
 
-### 🟡 Sprint 2 – Authentication & User Features
-- User authentication (JWT)
-- User table in PostgreSQL
-- File ownership management
-- “My Files” dashboard
-- Delete / revoke links
+### Sprint 2 - Integration and Testing
 
----
+Completed:
 
-### 🟠 Sprint 3 – Security & Enhancements
-- File expiration logic
-- Improved validation and error handling
-- Logging improvements
-- UI/UX enhancements
-- Performance optimization
+- Frontend and backend integration
+- Upload validation improvements
+- Metadata endpoint integration
+- Basic Cypress coverage
+- Frontend unit tests
+- Backend unit tests
+- Backend API documentation in Sprint 2 deliverables
 
----
+Status:
 
-### 🔴 Sprint 4 – Deployment & Production Readiness
-- Dockerization
-- CI/CD setup
-- Cloud deployment
-- Monitoring & logging
-- Final documentation
+- Sprint 2 completed
 
----
+### Sprint 3 - Authentication and Ownership Features
 
-## 🧠 Design Principles
+Completed:
 
-- Separation of concerns (Handler → Service → Repository → Database)
-- Environment-based configuration
-- Clean and modular structure
-- Scalable architecture for future enhancements
-- RESTful API best practices
+- User registration
+- User login with JWT
+- Protected routes for authenticated actions
+- Authenticated upload flow
+- User dashboard for owned files
+- Revoke and delete actions for owned files
+- Updated frontend and backend unit tests
+- Updated backend API documentation in Sprint 3 submission
+- Improved public download/share flow
 
----
+Status:
 
-## 🗄 Planned Database Schema (Sprint 1)
+- Sprint 3 completed
 
-```sql
-CREATE TABLE files (
-    id SERIAL PRIMARY KEY,
-    token VARCHAR(255) UNIQUE NOT NULL,
-    filename VARCHAR(255) NOT NULL,
-    file_size BIGINT NOT NULL,
-    file_path TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-````
+### Sprint 4 - Remaining Work
 
----
+Planned / left to complete:
 
-## 🚀 Getting Started (To Be Updated After Sprint 1)
+- Deployment of frontend and backend to a live environment
+- Production-ready environment configuration
+- README updates for final project usage and deployment
+- Final Cypress expansion and full regression checks
+- Final backend API documentation cleanup
+- Live user testing and feedback collection
+- Final project demo/pitch preparation
+- Sprint 4 submission documentation and closing polish
 
-### Backend
+## Tech Stack
 
-```bash
-cd backend
-go run ./cmd/server
+- Frontend: React, React Router, Testing Library, Cypress
+- Backend: Go, net/http, pgx, JWT, bcrypt
+- Database: PostgreSQL when `DATABASE_URL` is configured
+- Local fallback: in-memory metadata/user storage when `DATABASE_URL` is not configured
+
+## Repository Structure
+
+```text
+ShareX/
+├── frontend/      React application
+├── backend/       Go backend API
+├── Sprint2.md     Sprint 2 submission documentation
+├── Sprint3.md     Sprint 3 submission documentation
+└── README.md
 ```
 
-### Auth and Ownership API Contract
-
-Authentication uses JWT bearer tokens.
-
-Flow:
-1. Register using `POST /auth/register`
-2. Login using `POST /auth/login` to receive a signed JWT
-3. Send `Authorization: Bearer <token>` for protected routes
-
-#### Register
-
-Endpoint: `POST /auth/register`
-
-Request:
-
-```json
-{
-    "name": "Varshith",
-    "email": "varshith@example.com",
-    "password": "strong-password"
-}
-```
-
-Success `201 Created`:
-
-```json
-{
-    "message": "User registered successfully",
-    "user": {
-        "id": 1,
-        "name": "Varshith",
-        "email": "varshith@example.com",
-        "createdAt": "2026-04-11T18:00:00Z"
-    }
-}
-```
-
-#### Login
-
-Endpoint: `POST /auth/login`
-
-Request:
-
-```json
-{
-    "email": "varshith@example.com",
-    "password": "strong-password"
-}
-```
-
-Success `200 OK`:
-
-```json
-{
-    "message": "Login successful",
-    "token": "<signed-jwt>",
-    "user": {
-        "id": 1,
-        "name": "Varshith",
-        "email": "varshith@example.com"
-    }
-}
-```
-
-Invalid credentials `401 Unauthorized`:
-
-```json
-{
-    "error": "Invalid email or password"
-}
-```
-
-#### Protected Routes
-
-These routes require `Authorization: Bearer <token>`:
-1. `POST /upload`
-2. `GET /me`
-3. `GET /me/files`
-4. `PATCH /me/files/revoke/{token}`
-5. `DELETE /me/files/{token}`
-
-Missing or invalid JWT returns `401 Unauthorized`.
-
-#### Ownership Rules
-
-1. Uploaded files are associated with the authenticated user using `owner_id`.
-2. Only the owner can revoke or delete a file link.
-3. Non-owner revoke/delete attempts return `403 Forbidden`.
-4. Revoked links remain in metadata but cannot be downloaded.
-5. Download for revoked links returns `404 Not Found`.
-
-#### Protected Request Examples
-
-Get current user:
-
-```http
-GET /me
-Authorization: Bearer <signed-jwt>
-```
-
-Get owned files:
-
-```http
-GET /me/files
-Authorization: Bearer <signed-jwt>
-```
-
-Revoke shared link:
-
-```http
-PATCH /me/files/revoke/abc123token
-Authorization: Bearer <signed-jwt>
-```
-
-Delete owned file:
-
-```http
-DELETE /me/files/abc123token
-Authorization: Bearer <signed-jwt>
-```
-
-#### Design Choice
-
-Anonymous uploads are explicitly rejected. File upload is a protected API and requires a valid JWT.
+## Core Features
 
 ### Frontend
 
+- Home page with Sprint 3 overview
+- Register page
+- Login page
+- Protected dashboard
+- Authenticated upload form
+- Upload success and validation feedback
+- Download page with metadata lookup
+
+### Backend
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /health`
+- `POST /upload`
+- `GET /file/{token}`
+- `GET /download/{token}`
+- `GET /me`
+- `GET /me/files`
+- `PATCH /me/files/revoke/{token}`
+- `DELETE /me/files/{token}`
+
+## Running the Project
+
+### 1. Backend
+
+From the project root:
+
 ```bash
-cd frontend
-npm install
-npm start
+cd /Users/varshith/Downloads/ShareX/backend
+go run ./cmd/server
 ```
 
+Default backend URL:
 
----
-
-## 📂 Current Status
-
-Project initialized.
-Sprint 1 development in progress.
-PostgreSQL integration planned as part of MVP implementation.
-
-## 🛠 Development Workflow
-
-1. Feature defined as GitHub Issue
-2. Issue assigned to team member
-3. Feature branch created
-4. Pull Request submitted
-5. Code review performed
-6. Merge to main branch
-7. Sprint review & demo
-
----
-
-## 📜 License
-
-This project is developed for academic purposes as part of university coursework.
-
+```text
+http://localhost:8080
 ```
+
+Notes:
+
+- If `DATABASE_URL` is not set, the backend falls back to in-memory storage
+- Uploaded files are stored in `backend/uploads/`
+- The backend auto-creates the uploads directory if it does not exist
+
+### 2. Frontend
+
+From the project root:
+
+```bash
+cd /Users/varshith/Downloads/ShareX/frontend
+BROWSER=none npm start
+```
+
+Default frontend URL:
+
+```text
+http://localhost:3000
+```
+
+### 3. Optional Environment Variables
+
+Backend:
+
+```bash
+PORT=8080
+DATABASE_URL=postgres://username:password@localhost:5432/sharex
+JWT_SECRET=change-this-secret
+```
+
+Frontend:
+
+```bash
+REACT_APP_API_URL=http://localhost:8080
+```
+
+## Testing
+
+### Backend unit tests
+
+```bash
+cd /Users/varshith/Downloads/ShareX/backend
+go test ./...
+```
+
+### Frontend unit tests
+
+```bash
+cd /Users/varshith/Downloads/ShareX/frontend
+npm test -- --watch=false
+```
+
+### Frontend production build
+
+```bash
+cd /Users/varshith/Downloads/ShareX/frontend
+npm run build
+```
+
+### Cypress
+
+```bash
+cd /Users/varshith/Downloads/ShareX/frontend
+npm run cypress:run
+```
+
+## Sprint 3 API Summary
+
+### Public routes
+
+- `GET /health`
+- `GET /file/{token}`
+- `GET /download/{token}`
+- `POST /auth/register`
+- `POST /auth/login`
+
+### Protected routes
+
+Protected routes require:
+
+```text
+Authorization: Bearer <jwt-token>
+```
+
+- `POST /upload`
+- `GET /me`
+- `GET /me/files`
+- `PATCH /me/files/revoke/{token}`
+- `DELETE /me/files/{token}`
+
+## Example API Flow
+
+### Register
+
+```http
+POST /auth/register
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Demo User",
+  "email": "demo@example.com",
+  "password": "demo123"
+}
+```
+
+### Login
+
+```http
+POST /auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "demo@example.com",
+  "password": "demo123"
+}
+```
+
+### Upload
+
+```http
+POST /upload
+Authorization: Bearer <jwt-token>
+Content-Type: multipart/form-data
+```
+
+Success response:
+
+```json
+{
+  "message": "File uploaded successfully",
+  "token": "generated-token",
+  "downloadUrl": "http://localhost:8080/download/generated-token"
+}
+```
+
+### File metadata
+
+```http
+GET /file/generated-token
+```
+
+### Owned files
+
+```http
+GET /me/files
+Authorization: Bearer <jwt-token>
+```
+
+## Current Status
+
+The repository on `main` now reflects the final Sprint 3 submission state. The application supports authenticated uploads, protected user file management, and public token-based downloads with frontend and backend test coverage.
+
+## Submission Notes
+
+For Sprint 3 submission materials, see:
+
+- [Sprint3.md](./Sprint3.md)
+
+That document includes:
+
+- Work completed in Sprint 3
+- Frontend unit test list
+- Backend unit test list
+- Updated backend API documentation

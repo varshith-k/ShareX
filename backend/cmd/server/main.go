@@ -32,25 +32,56 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	// Root
+	mux.Handle("/", middleware.LoggingMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ShareX Backend Running"))
-	})
+	})))
 
-	mux.HandleFunc("/health", handlers.HealthHandler)
+	// Health
+	mux.Handle("/health", middleware.LoggingMiddleware(http.HandlerFunc(handlers.HealthHandler)))
 
-	mux.Handle("/upload", middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)))
+	// Upload (Logging + RateLimiter + Auth)
+	mux.Handle("/upload",
+		middleware.LoggingMiddleware(
+			middleware.RateLimiter(
+				middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)),
+			),
+		),
+	)
 
-	mux.HandleFunc("/download/", handlers.DownloadHandler)
+	// Public routes
+	mux.Handle("/download/", middleware.LoggingMiddleware(http.HandlerFunc(handlers.DownloadHandler)))
+	mux.Handle("/file/", middleware.LoggingMiddleware(http.HandlerFunc(handlers.MetadataHandler)))
 
-	mux.HandleFunc("/file/", handlers.MetadataHandler)
+	// Auth routes
+	mux.Handle("/auth/register", middleware.LoggingMiddleware(http.HandlerFunc(handlers.RegisterHandler)))
+	mux.Handle("/auth/login", middleware.LoggingMiddleware(http.HandlerFunc(handlers.LoginHandler)))
 
-	mux.HandleFunc("/auth/register", handlers.RegisterHandler)
-	mux.HandleFunc("/auth/login", handlers.LoginHandler)
-	mux.Handle("/me", middleware.AuthMiddleware(http.HandlerFunc(handlers.MeHandler)))
-	mux.Handle("/me/files", middleware.AuthMiddleware(http.HandlerFunc(handlers.MyFilesHandler)))
-	mux.Handle("/me/files/revoke/", middleware.AuthMiddleware(http.HandlerFunc(handlers.RevokeMyFileHandler)))
-	mux.Handle("/me/files/", middleware.AuthMiddleware(http.HandlerFunc(handlers.DeleteMyFileHandler)))
+	// Protected routes
+	mux.Handle("/me",
+		middleware.LoggingMiddleware(
+			middleware.AuthMiddleware(http.HandlerFunc(handlers.MeHandler)),
+		),
+	)
+
+	mux.Handle("/me/files",
+		middleware.LoggingMiddleware(
+			middleware.AuthMiddleware(http.HandlerFunc(handlers.MyFilesHandler)),
+		),
+	)
+
+	mux.Handle("/me/files/revoke/",
+		middleware.LoggingMiddleware(
+			middleware.AuthMiddleware(http.HandlerFunc(handlers.RevokeMyFileHandler)),
+		),
+	)
+
+	mux.Handle("/me/files/",
+		middleware.LoggingMiddleware(
+			middleware.AuthMiddleware(http.HandlerFunc(handlers.DeleteMyFileHandler)),
+		),
+	)
 
 	log.Printf("Server running on port %s\n", port)
 
