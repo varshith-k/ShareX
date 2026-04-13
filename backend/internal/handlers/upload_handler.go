@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
@@ -21,14 +22,33 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
-
-	err := r.ParseMultipartForm(MaxUploadSize)
-	if err != nil {
-		utils.WriteJSONError(w, "File exceeds maximum allowed size of 10MB", http.StatusBadRequest)
+	// 🔥 Content-Type validation (FIRST)
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "" {
+		utils.WriteJSONError(w, "Content-Type header missing", http.StatusBadRequest)
 		return
 	}
 
+	if !strings.HasPrefix(contentType, "multipart/form-data") {
+		utils.WriteJSONError(w, "Content-Type must be multipart/form-data", http.StatusBadRequest)
+		return
+	}
+
+	// 🔥 Limit body size
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+
+	// 🔥 Parse multipart form (ONLY ONCE)
+	err := r.ParseMultipartForm(MaxUploadSize)
+	if err != nil {
+		if err.Error() == "http: request body too large" {
+			utils.WriteJSONError(w, "File exceeds maximum allowed size of 10MB", http.StatusBadRequest)
+		} else {
+			utils.WriteJSONError(w, "Invalid multipart/form-data request", http.StatusBadRequest)
+		}
+		return
+	}
+
+	// 🔥 Get file
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		utils.WriteJSONError(w, "File not found in request", http.StatusBadRequest)
@@ -36,21 +56,26 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// 🔥 Empty file check
 	if handler.Size == 0 {
 		utils.WriteJSONError(w, "File is empty", http.StatusBadRequest)
 		return
 	}
 
+	// 🔥 Generate token
 	token := utils.GenerateToken()
 
+	// 🔥 Ensure upload directory exists
 	uploadsDir := "uploads"
 	if err := os.MkdirAll(uploadsDir, os.ModePerm); err != nil {
 		utils.WriteJSONError(w, "Unable to prepare upload directory", http.StatusInternalServerError)
 		return
 	}
 
+	// 🔥 Create file path
 	fp := filepath.Join(uploadsDir, token+"_"+handler.Filename)
 
+	// 🔥 Save file
 	dst, err := os.Create(fp)
 	if err != nil {
 		utils.WriteJSONError(w, "Unable to save file", http.StatusInternalServerError)
@@ -64,6 +89,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 🔥 Repository save
 	repo := repository.FileRepository{}
 
 	var ownerID *int
@@ -72,12 +98,13 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newFile := models.File{
-		Filename: handler.Filename,
-		Filepath: fp,
-		Token:    token,
-		Size:     size,
-		OwnerID:  ownerID,
-		IsActive: true,
+		Filename:  handler.Filename,
+		Filepath:  fp,
+		Token:     token,
+		Size:      size,
+		OwnerID:   ownerID,
+		IsActive:  true,
+		ExpiresAt: nil,
 	}
 
 	err = repo.Create(&newFile)
@@ -86,6 +113,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 🔥 Success response
 	downloadURL := "/download/" + token
 
 	w.Header().Set("Content-Type", "application/json")
