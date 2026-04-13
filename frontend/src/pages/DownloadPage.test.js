@@ -3,37 +3,58 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DownloadPage from './DownloadPage';
 import * as api from '../services/api';
 
-// Mock the API service
 jest.mock('../services/api');
 
-describe('FE2-18: DownloadPage Error State', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+const renderDownloadPage = () => {
+  return render(
+    <MemoryRouter initialEntries={['/download/test-token-123']}>
+      <Routes>
+        <Route path="/download/:token" element={<DownloadPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+};
+
+describe('DownloadPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    api.getDownloadUrl.mockReturnValue('http://localhost:8080/download/test-token-123');
+  });
+
+  test('renders file metadata and download button on successful fetch', async () => {
+    api.fetchFileMetadata.mockResolvedValueOnce({
+      filename: 'resume.pdf',
+      size: 2048,
+      token: 'test-token-123',
+      createdAt: '2026-04-12T10:00:00.000Z',
+      expiresAt: '2026-04-20T10:00:00.000Z',
+      isExpired: false,
     });
 
-    test('displays error message when the file token is invalid or expired', async () => {
-        // 1. Setup the mock to simulate a failed API call (404 Error)
-        api.fetchFileMetadata.mockRejectedValueOnce(new Error('File not found'));
+    renderDownloadPage();
 
-        // 2. Render the component with an invalid token
-        render(
-            <MemoryRouter initialEntries={['/download/invalid-token-999']}>
-                <Routes>
-                    <Route path="/download/:token" element={<DownloadPage />} />
-                </Routes>
-            </MemoryRouter>
-        );
+    const headings = await screen.findAllByText(/resume\.pdf/i);
+    expect(headings.length).toBeGreaterThan(0);
 
-        // 3. Verify the "File Not Found" heading appears
-        const errorHeading = await screen.findByText(/File Not Found/i);
-        expect(errorHeading).toBeInTheDocument();
+    expect(screen.getByText(/size/i)).toBeInTheDocument();
+    expect(screen.getByText(/2\.00 kb/i)).toBeInTheDocument();
 
-        // 4. Verify the specific error instruction message is displayed
-        const errorMessage = screen.getByText(/link is invalid or has expired/i);
-        expect(errorMessage).toBeInTheDocument();
+    const downloadButton = screen.getByRole('button', { name: /download file/i });
+    expect(downloadButton).toBeInTheDocument();
+  });
 
-        // 5. Ensure the "Back to Home" link is available for the user
-        const homeLink = screen.getByText(/Back to Home/i);
-        expect(homeLink).toBeInTheDocument();
-    });
+  test('displays generic invalid-link state when metadata fetch fails', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(new Error('File not found'));
+
+    renderDownloadPage();
+
+    const errorHeading = await screen.findByText(/file not found/i);
+    expect(errorHeading).toBeInTheDocument();
+
+    const errorMessage = screen.getByText(/invalid, unavailable, or may have been removed/i);
+    expect(errorMessage).toBeInTheDocument();
+
+    const homeLink = screen.getByText(/back to home/i);
+    expect(homeLink).toBeInTheDocument();
+  });
 });
