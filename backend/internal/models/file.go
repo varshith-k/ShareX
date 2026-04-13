@@ -11,4 +11,6 @@ type File struct {
 	OwnerID   *int
 	IsActive  bool
 	CreatedAt time.Time
+
+	ExpiresAt *time.Time
 }
