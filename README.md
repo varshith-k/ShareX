@@ -82,6 +82,35 @@ Planned / left to complete:
 - Database: PostgreSQL when `DATABASE_URL` is configured
 - Local fallback: in-memory metadata/user storage when `DATABASE_URL` is not configured
 
+## Final Project Architecture Summary
+
+ShareX follows a layered full-stack architecture with independent deployable services.
+
+### Architecture layers
+
+- Presentation layer: React frontend served as static assets (or dev server in local mode)
+- API layer: Go backend (`net/http`) exposing auth, upload, metadata, and download endpoints
+- Data layer: PostgreSQL for persistent users/file metadata with in-memory fallback for local-only runtime
+- Storage layer: filesystem-backed upload storage mounted to backend runtime
+
+### Request/data flow
+
+1. User interacts with React UI (`/register`, `/login`, `/dashboard`, `/download/:token`).
+2. Frontend calls backend APIs via `REACT_APP_API_URL`.
+3. Backend validates auth tokens for protected routes and enforces ownership rules.
+4. File binaries are written/read from upload storage.
+5. Metadata and user records are read/written to PostgreSQL when configured.
+6. Public token routes serve metadata/download while respecting active/revoked/expired state.
+
+### Deployment topology
+
+- `frontend` container: serves production React build
+- `backend` container: runs Go API service
+- `postgres` container: stores persistent data
+- Shared volume mounts:
+  - backend upload persistence (`./backend/uploads`)
+  - postgres data persistence (`postgres-data`)
+
 ## Repository Structure
 
 ```text
