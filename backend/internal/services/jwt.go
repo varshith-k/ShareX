@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"sharex-backend/internal/config"
 )
 
 func GenerateJWT(userID int, email string, name string) (string, error) {
@@ -16,12 +17,13 @@ func GenerateJWT(userID int, email string, name string) (string, error) {
 	}
 
 	now := time.Now().UTC()
+	expiry := time.Duration(config.JWTExpiryHours()) * time.Hour
 	claims := jwt.MapClaims{
 		"sub":   userID,
 		"email": email,
 		"name":  name,
 		"iat":   now.Unix(),
-		"exp":   now.Add(24 * time.Hour).Unix(),
+		"exp":   now.Add(expiry).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

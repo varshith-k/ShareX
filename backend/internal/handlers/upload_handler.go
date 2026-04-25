@@ -8,15 +8,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sharex-backend/internal/config"
 	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
 	"sharex-backend/internal/repository"
 	"sharex-backend/internal/utils"
 )
 
-const MaxUploadSize = 10 << 20 // 10MB
-
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	maxUploadSize := config.MaxUploadSizeBytes()
+
 	if r.Method != http.MethodPost {
 		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -35,13 +36,13 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 🔥 Limit body size
-	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 
 	// 🔥 Parse multipart form (ONLY ONCE)
-	err := r.ParseMultipartForm(MaxUploadSize)
+	err := r.ParseMultipartForm(maxUploadSize)
 	if err != nil {
 		if err.Error() == "http: request body too large" {
-			utils.WriteJSONError(w, "File exceeds maximum allowed size of 10MB", http.StatusBadRequest)
+			utils.WriteJSONError(w, "File exceeds maximum allowed size", http.StatusBadRequest)
 		} else {
 			utils.WriteJSONError(w, "Invalid multipart/form-data request", http.StatusBadRequest)
 		}
@@ -94,7 +95,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	token := utils.GenerateToken()
 
 	// 🔥 Ensure upload directory exists
-	uploadsDir := "uploads"
+	uploadsDir := config.UploadDir()
 	if err := os.MkdirAll(uploadsDir, os.ModePerm); err != nil {
 		utils.WriteJSONError(w, "Unable to prepare upload directory", http.StatusInternalServerError)
 		return

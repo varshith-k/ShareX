@@ -4,7 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"sharex-backend/internal/config"
 	"sharex-backend/internal/database"
 	"sharex-backend/internal/handlers"
 	"sharex-backend/internal/middleware"
@@ -16,7 +18,7 @@ func main() {
 		port = "8080"
 	}
 
-	uploadsDir := "uploads"
+	uploadsDir := config.UploadDir()
 	if _, err := os.Stat(uploadsDir); os.IsNotExist(err) {
 		if mkErr := os.MkdirAll(uploadsDir, os.ModePerm); mkErr != nil {
 			log.Fatalf("Failed to create uploads directory: %v", mkErr)
@@ -85,15 +87,26 @@ func main() {
 
 	log.Printf("Server running on port %s\n", port)
 
-	if err := http.ListenAndServe(":"+port, withCORS(mux)); err != nil {
+	allowedOrigins := config.AllowedOrigins()
+	if err := http.ListenAndServe(":"+port, withCORS(mux, allowedOrigins)); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func withCORS(next http.Handler) http.Handler {
+func withCORS(next http.Handler, allowedOrigins []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			for _, allowed := range allowedOrigins {
+				if strings.EqualFold(origin, allowed) {
+					w.Header().Set("Access-Control-Allow-Origin", origin)
+					w.Header().Set("Vary", "Origin")
+					break
+				}
+			}
+		}
+
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == http.MethodOptions {
