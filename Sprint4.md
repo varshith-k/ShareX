@@ -37,3 +37,60 @@ Use this checklist before final backend release or deployment promotion.
 - [ ] Database schema is initialized and migration SQL has run
 - [ ] Logs are monitored for startup/runtime errors
 - [ ] Rollback plan is documented
+
+## TEAM4-01: Final Deployment Demo Walkthrough
+
+This walkthrough is the final Sprint 4 demo script for presenting end-to-end deployment.
+
+### 1. Prepare and start the stack
+
+From repository root:
+
+```bash
+docker compose up --build
+```
+
+Expected startup:
+
+- Postgres healthcheck becomes healthy
+- Backend starts on `http://localhost:8080`
+- Frontend starts on `http://localhost:3000`
+
+### 2. Validate service health
+
+Open or call:
+
+- `GET http://localhost:8080/health`
+
+Expected result: JSON response with `status: ok`.
+
+### 3. Demo authentication flow
+
+In frontend:
+
+1. Register a new account on the register page.
+2. Log in with newly created credentials.
+3. Confirm dashboard and protected UI access are visible.
+
+### 4. Demo upload and sharing flow
+
+In authenticated dashboard:
+
+1. Upload a valid file.
+2. Capture generated token/share link.
+3. Open download route and confirm metadata is shown.
+4. Download file successfully.
+
+### 5. Demo owner actions
+
+In dashboard file list:
+
+1. Revoke uploaded file link.
+2. Verify revoked link returns error state on download page.
+3. Delete file and verify it disappears from owner list.
+
+### 6. Demo completion checkpoints
+
+- Frontend, backend, and database are all running in containers.
+- Public routes and authenticated routes behave as expected.
+- Upload/download and ownership controls are validated live.
