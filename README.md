@@ -135,6 +135,19 @@ Default backend URL:
 http://localhost:8080
 ```
 
+Docker (production-style image):
+
+```bash
+cd /Users/varshith/Downloads/ShareX/backend
+docker build -t sharex-backend:latest .
+docker run --rm -p 8080:8080 \
+  -e PORT=8080 \
+  -e JWT_SECRET=change-this-secret \
+  -e DATABASE_URL=postgres://username:password@host:5432/sharex \
+  -v /Users/varshith/Downloads/ShareX/backend/uploads:/app/uploads \
+  sharex-backend:latest
+```
+
 Notes:
 
 - If `DATABASE_URL` is not set, the backend falls back to in-memory storage

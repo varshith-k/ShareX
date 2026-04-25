@@ -1,0 +1,10 @@
+.git
+.gitignore
+Dockerfile
+.DS_Store
+uploads
+tmp
+*.log
+*.out
+coverage*
+**/*_test.go
