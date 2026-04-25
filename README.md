@@ -215,6 +215,57 @@ cd /Users/varshith/Downloads/ShareX/frontend
 npm run cypress:run
 ```
 
+## Deployment Readiness
+
+This repository now includes production-style deployment configuration for backend and full-stack startup.
+
+### Environment readiness
+
+Backend environment template:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Frontend environment template (used for local/dev builds):
+
+```bash
+cp frontend/.env.example frontend/.env
+```
+
+Important backend variables:
+
+- `PORT`: backend listen port
+- `DATABASE_URL`: PostgreSQL connection string
+- `JWT_SECRET`: signing key for auth tokens
+- `JWT_EXPIRY_HOURS`: token lifetime in hours
+- `CORS_ALLOWED_ORIGINS`: comma-separated allowed web origins
+- `UPLOAD_DIR`: upload directory path
+- `MAX_UPLOAD_SIZE_MB`: max upload size limit
+
+### Containerized startup
+
+Run all services with Docker Compose:
+
+```bash
+cd /Users/varshith/Downloads/ShareX
+docker compose up --build
+```
+
+Services:
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8080`
+- Postgres: internal service `postgres:5432`
+
+### Minimum release readiness checks
+
+- Backend unit tests pass: `cd backend && go test ./...`
+- Frontend production build passes: `cd frontend && npm run build`
+- Core health route responds: `GET /health`
+- Upload/download flow works end-to-end
+- Auth flow works (`/auth/register`, `/auth/login`, protected routes)
+
 ## Sprint 3 API Summary
 
 ### Public routes
