@@ -51,10 +51,15 @@ function Upload({ onUploaded, token }) {
       if (onUploaded) {
         await onUploaded();
       }
-    } catch (error) {
-      setProgress(0);
-      setStatus(error.message || 'Upload failed. Backend may not be ready yet.');
-    } finally {
+   } catch (error) {
+    setProgress(0);
+
+    if (error.message && error.message.includes("Failed to fetch")) {
+      setStatus("Cannot connect to server. Please ensure backend is running.");
+    } else {
+      setStatus(error.message || "Upload failed. Please try again.");
+    }
+  } finally {
       setIsUploading(false);
     }
   };
