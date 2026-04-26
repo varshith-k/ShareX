@@ -123,3 +123,43 @@ npm run build
 - Full-stack container configuration is valid.
 - Backend and frontend pass release-blocking quality checks.
 - Project is ready for final deployment/demo execution using Docker Compose.
+
+## FE4-05: Frontend Test Summary and Upload Flow Contributions
+
+### Frontend contributions by Bhoomika
+
+Implemented Sprint 4 frontend improvements for the authenticated upload workflow.
+
+### Features completed
+
+- Improved upload status messages with success and error styling
+- Added empty file validation with UI reset behavior
+- Added file size validation with a 5MB upload limit
+- Improved backend connection error handling with a clearer user-facing message
+
+### Unit tests covered
+
+Frontend unit tests were added/updated for:
+
+- Empty file validation
+- Successful file upload and share link generation
+- File size validation
+- Backend upload error handling
+
+### Test command
+
+```bash
+cd frontend
+npm test
+```
+
+### Test result
+
+All upload page unit tests passed successfully.
+
+### Related issues
+
+- FE4-01
+- FE4-02
+- FE4-03
+- FE4-05
