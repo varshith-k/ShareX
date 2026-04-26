@@ -106,8 +106,16 @@ function Upload({ onUploaded, token }) {
           </div>
         )}
 
-        {status && <p style={styles.status}>{status}</p>}
-
+        {status && (
+          <p
+            style={{
+              ...styles.status,
+              color: status.toLowerCase().includes("fail") ? "red" : "green",
+            }}
+          >
+            {status}
+          </p>
+        )}
         {shareData && (
           <section style={styles.sharePanel}>
             <div style={styles.shareHeader}>
