@@ -23,6 +23,17 @@ function Upload({ onUploaded, token }) {
   const handleUpload = async () => {
     if (!file) {
       setStatus('Please select a file first.');
+      setProgress(0);
+      setShareData(null);
+      setCopyStatus('');
+      return;
+    }
+
+    if (file && file.size > 5 * 1024 * 1024) {
+      setStatus('File size should be less than 5MB.');
+      setProgress(0);
+      setShareData(null);
+      setCopyStatus('');
       return;
     }
 
