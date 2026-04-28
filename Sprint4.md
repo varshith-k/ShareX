@@ -1,28 +1,32 @@
-## FE4-10: Public Share and Download Frontend Summary
+### Public Frontend Test Coverage
 
-### Public Flow Overview
-The public-facing frontend flow allows recipients to open a token-based shared file link, review file metadata, and download the file when the link is valid.
+#### Unit Tests
+The public-facing frontend flow is covered by unit tests for:
+- successful metadata rendering
+- no-expiration file state
+- expired metadata state
+- expired link error state
+- revoked link error state
+- invalid-link fallback state
+- reusable file detail panel metadata rendering
 
-### Public Routes
-- `/download`
-  - Allows users to enter or look up a shared file token.
-- `/download/:token`
-  - Displays the public recipient download page for a shared file.
+Relevant files:
+- `frontend/src/pages/DownloadPage.test.js`
+- `frontend/src/components/FileDetailPanel.test.js`
 
-### Recipient Experience
-The Sprint 4 public download flow includes:
-- readable file metadata
-- clear file name and size display
-- uploaded time display when available
-- expiration status display
-- disabled download action for expired links
-- user-friendly invalid, expired, and revoked link states
+#### Cypress Smoke Tests
+Final Cypress smoke coverage validates key frontend routes and public flow behavior.
 
-### Demo Flow
-Recommended public-flow demo order:
-1. Open the ShareX landing page.
-2. Navigate to the public download flow.
-3. Open a token-based download route.
-4. Show file metadata and expiration status.
-5. Show the download action.
-6. Show invalid, expired, or revoked link handling.
+Relevant files:
+- `frontend/cypress/e2e/download_page.cy.js`
+- `frontend/cypress/e2e/upload_flow.cy.js`
+- `frontend/cypress/e2e/upload.cy.js`
+
+Cypress coverage includes:
+- public download route loads successfully
+- invalid public token route is handled gracefully
+- unauthenticated upload access redirects to login
+- public download route remains accessible without login
+
+### Sprint 4 Public Flow Result
+The public recipient experience is demo-ready, readable, and covered by both unit tests and Cypress smoke tests.
