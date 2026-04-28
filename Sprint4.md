@@ -1,33 +1,45 @@
-## TEAM4-09: Harshini Sprint 4 Contribution Summary
+## TEAM4-10: Final Completed Project Pitch Summary
 
-### Frontend Ownership Area
-Harshini focused on the public share and download experience of ShareX, ensuring recipients could access shared files through a clean and reliable frontend flow.
+### Project Overview
+ShareX is a modern file-sharing platform designed to make secure file uploads and public file sharing simple, fast, and user-friendly.
 
-### Major Contributions
-- Improved the public download page UI for recipient-facing access
-- Enhanced file metadata readability before download
-- Improved invalid-link and error-state handling
-- Supported final frontend demo walkthrough flow
-- Added and stabilized Cypress smoke tests for public routes
-- Supported frontend unit test readiness for public components
-- Added Sprint 4 documentation for recipient-side flows
+The system allows users to upload files, generate shareable token-based links, and let recipients access file details before downloading.
 
-### Public Flow Features Delivered
-The public frontend experience now supports:
+### Key Features Delivered
 
-- token-based shared download routes
-- readable file details before download
-- clean download action for active files
-- graceful handling for invalid or unavailable links
-- demo-ready navigation and presentation flow
+#### Authenticated User Features
+- file upload workflow
+- share-link generation
+- dashboard-style user experience
+- clean frontend navigation
 
-### Testing Support
-Frontend verification includes:
+#### Public Recipient Features
+- token-based public download routes
+- readable file metadata before download
+- download access for active links
+- graceful invalid-link handling
+- presentation-ready public flow
 
-- Cypress smoke tests for public download routes
-- route accessibility checks
-- invalid-token handling checks
-- unit tests for download page and file detail UI
+#### Frontend Quality Improvements
+- reusable React components
+- polished route navigation
+- responsive UI improvements
+- loading and error state handling
 
-### Sprint 4 Result
-Harshini’s work helped make the recipient-side ShareX experience polished, testable, and presentation-ready for the final sprint submission.
+#### Testing Coverage
+- React unit tests for key components and pages
+- Cypress smoke tests for core routes
+- presentation-ready automated test output
+
+### Technology Stack
+- React frontend
+- Node.js / Express backend
+- Token-based file sharing flow
+- Cypress testing
+- GitHub collaboration workflow
+
+### Final Result
+ShareX evolved into a complete full-stack collaborative project demonstrating frontend engineering, backend integration, testing, documentation, and final product presentation readiness.
+
+### Final Pitch Statement
+ShareX showcases how a student team can build a real-world product that combines usability, public sharing workflows, quality testing, and collaborative software engineering practices.
