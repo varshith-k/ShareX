@@ -1,29 +1,28 @@
-## FE4-09: Frontend Demo Walkthrough Support
+## FE4-10: Public Share and Download Frontend Summary
 
-### Demo Goal
-The Sprint 4 frontend demo is designed to show ShareX as a complete file-sharing product with both an owner-side upload experience and a public recipient-side download experience.
+### Public Flow Overview
+The public-facing frontend flow allows recipients to open a token-based shared file link, review file metadata, and download the file when the link is valid.
 
-### Recommended Demo Order
-1. Open the ShareX home page.
-2. Briefly explain the purpose of the application:
-   - upload files
-   - generate share links
-   - allow recipients to view file details before downloading
-3. Open the upload flow.
-4. Show the public download route.
-5. Show file metadata on the recipient page.
-6. Show invalid, expired, or revoked link handling if available.
-7. Show frontend unit test output.
-8. Show Cypress smoke test output.
+### Public Routes
+- `/download`
+  - Allows users to enter or look up a shared file token.
+- `/download/:token`
+  - Displays the public recipient download page for a shared file.
 
-### Public Recipient Flow Talking Points
-- The public download page is designed for recipients who receive a share link.
-- The page shows readable metadata before download.
-- Expiration and invalid-link states are handled with user-friendly messages.
-- The page remains usable for final demo and presentation.
+### Recipient Experience
+The Sprint 4 public download flow includes:
+- readable file metadata
+- clear file name and size display
+- uploaded time display when available
+- expiration status display
+- disabled download action for expired links
+- user-friendly invalid, expired, and revoked link states
 
-### Demo Readiness Notes
-- Primary routes are easy to access from the UI.
-- Public download flow is presentable.
-- Loading, error, and invalid-link states are clear.
-- Cypress tests support the demo by verifying key frontend routes.
+### Demo Flow
+Recommended public-flow demo order:
+1. Open the ShareX landing page.
+2. Navigate to the public download flow.
+3. Open a token-based download route.
+4. Show file metadata and expiration status.
+5. Show the download action.
+6. Show invalid, expired, or revoked link handling.
