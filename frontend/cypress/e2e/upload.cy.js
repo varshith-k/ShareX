@@ -1,18 +1,8 @@
-describe("Upload Page Test", () => {
-  it("should load upload page and click upload button", () => {
-    cy.visit("http://localhost:3000/upload");
+describe('Upload Page Test', () => {
+  it('redirects unauthenticated users from upload page to login', () => {
+    cy.visit('/upload', { failOnStatusCode: false });
 
-    cy.contains("Upload File");
-
-    cy.get('input[type="file"]').selectFile({
-      contents: Cypress.Buffer.from("hello world"),
-      fileName: "test.txt",
-      mimeType: "text/plain",
-    });
-
-    cy.contains("Upload").click();
-
-    // simple verification (no fragile check)
-    cy.contains("Upload");
+    cy.url().should('include', '/login');
+    cy.contains(/login|email|password|sign in/i).should('exist');
   });
 });
