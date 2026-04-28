@@ -1,29 +1,32 @@
-## FE4-09: Frontend Demo Walkthrough Support
+### Public Frontend Test Coverage
 
-### Demo Goal
-The Sprint 4 frontend demo is designed to show ShareX as a complete file-sharing product with both an owner-side upload experience and a public recipient-side download experience.
+#### Unit Tests
+The public-facing frontend flow is covered by unit tests for:
+- successful metadata rendering
+- no-expiration file state
+- expired metadata state
+- expired link error state
+- revoked link error state
+- invalid-link fallback state
+- reusable file detail panel metadata rendering
 
-### Recommended Demo Order
-1. Open the ShareX home page.
-2. Briefly explain the purpose of the application:
-   - upload files
-   - generate share links
-   - allow recipients to view file details before downloading
-3. Open the upload flow.
-4. Show the public download route.
-5. Show file metadata on the recipient page.
-6. Show invalid, expired, or revoked link handling if available.
-7. Show frontend unit test output.
-8. Show Cypress smoke test output.
+Relevant files:
+- `frontend/src/pages/DownloadPage.test.js`
+- `frontend/src/components/FileDetailPanel.test.js`
 
-### Public Recipient Flow Talking Points
-- The public download page is designed for recipients who receive a share link.
-- The page shows readable metadata before download.
-- Expiration and invalid-link states are handled with user-friendly messages.
-- The page remains usable for final demo and presentation.
+#### Cypress Smoke Tests
+Final Cypress smoke coverage validates key frontend routes and public flow behavior.
 
-### Demo Readiness Notes
-- Primary routes are easy to access from the UI.
-- Public download flow is presentable.
-- Loading, error, and invalid-link states are clear.
-- Cypress tests support the demo by verifying key frontend routes.
+Relevant files:
+- `frontend/cypress/e2e/download_page.cy.js`
+- `frontend/cypress/e2e/upload_flow.cy.js`
+- `frontend/cypress/e2e/upload.cy.js`
+
+Cypress coverage includes:
+- public download route loads successfully
+- invalid public token route is handled gracefully
+- unauthenticated upload access redirects to login
+- public download route remains accessible without login
+
+### Sprint 4 Public Flow Result
+The public recipient experience is demo-ready, readable, and covered by both unit tests and Cypress smoke tests.
