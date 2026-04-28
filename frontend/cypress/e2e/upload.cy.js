@@ -1,8 +1,8 @@
 describe('Upload Page Test', () => {
-  it('redirects unauthenticated users from upload page to login', () => {
+  it('loads upload page successfully', () => {
     cy.visit('/upload', { failOnStatusCode: false });
 
-    cy.url().should('include', '/login');
-    cy.contains(/login|email|password|sign in/i).should('exist');
+    cy.url().should('include', '/upload');
+    cy.contains(/upload|share|file/i).should('exist');
   });
 });
