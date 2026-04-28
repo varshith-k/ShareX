@@ -27,7 +27,7 @@ describe('DownloadPage', () => {
       size: 2048,
       token: 'test-token-123',
       createdAt: '2026-04-12T10:00:00.000Z',
-      expiresAt: '2026-04-20T10:00:00.000Z',
+      expiresAt: '2035-04-20T10:00:00.000Z',
       isExpired: false,
     });
 
