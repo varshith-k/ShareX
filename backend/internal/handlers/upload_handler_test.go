@@ -167,3 +167,28 @@ func TestUploadHandler_AuthenticatedUploadStoresOwnerID(t *testing.T) {
 		t.Fatalf("Expected owner ID 77, got %v", fileMeta.OwnerID)
 	}
 }
+
+func TestUploadHandler_InvalidMethod(t *testing.T) {
+	req := httptest.NewRequest("GET", "/upload", nil)
+	rr := httptest.NewRecorder()
+
+	handler := http.HandlerFunc(UploadHandler)
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("Expected status 405, got %v", rr.Code)
+	}
+}
+
+func TestUploadHandler_InvalidContentType(t *testing.T) {
+	req := httptest.NewRequest("POST", "/upload", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(UploadHandler)
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %v", rr.Code)
+	}
+}
