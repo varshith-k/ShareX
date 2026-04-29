@@ -1,32 +1,58 @@
-### Public Frontend Test Coverage
+## Backend Test Summary (Sprint 4)
 
-#### Unit Tests
-The public-facing frontend flow is covered by unit tests for:
-- successful metadata rendering
-- no-expiration file state
-- expired metadata state
-- expired link error state
-- revoked link error state
-- invalid-link fallback state
-- reusable file detail panel metadata rendering
+This section summarizes the backend unit tests implemented and extended as part of the final sprint.
 
-Relevant files:
-- `frontend/src/pages/DownloadPage.test.js`
-- `frontend/src/components/FileDetailPanel.test.js`
+---
 
-#### Cypress Smoke Tests
-Final Cypress smoke coverage validates key frontend routes and public flow behavior.
+### Test Files
 
-Relevant files:
-- `frontend/cypress/e2e/download_page.cy.js`
-- `frontend/cypress/e2e/upload_flow.cy.js`
-- `frontend/cypress/e2e/upload.cy.js`
+- `upload_handler_test.go`
+- (existing test files from previous sprints, if any)
 
-Cypress coverage includes:
-- public download route loads successfully
-- invalid public token route is handled gracefully
-- unauthenticated upload access redirects to login
-- public download route remains accessible without login
+---
 
-### Sprint 4 Public Flow Result
-The public recipient experience is demo-ready, readable, and covered by both unit tests and Cypress smoke tests.
+### Test Coverage Overview
+
+The backend tests cover the following key areas:
+
+#### 1. Upload Handler
+
+- Missing file validation
+- Empty file validation
+- Valid file upload flow
+- Authenticated upload (owner ID assignment)
+- Invalid HTTP method handling
+- Invalid Content-Type handling
+
+---
+
+#### 2. Authentication & Authorization
+
+- Protected route access validation
+- Unauthorized request handling
+
+---
+
+#### 3. Request Validation
+
+- Content-Type validation
+- Multipart form validation
+- File size and format validation
+
+---
+
+#### 4. File Handling
+
+- File persistence verification
+- Metadata storage validation
+- Token-based file retrieval validation
+
+---
+
+### Test Execution
+
+To run backend tests:
+
+```bash
+cd backend
+go test ./...
