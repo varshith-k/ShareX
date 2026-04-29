@@ -590,4 +590,82 @@ Response:
 
 Errors:
 - 401 Unauthorized
-- 404 Not Found
+- 404 Not Foundgit add README.md
+
+---
+
+## Backend Error Cases
+
+The backend returns consistent JSON error responses for validation and runtime failures.
+
+### Error Response Format
+
+{
+  "error": "error message"
+}
+
+---
+
+### Common Error Cases
+
+#### 1. Authentication Errors
+
+- Missing token → 401 Unauthorized  
+- Invalid token → 401 Unauthorized  
+
+Example:
+{
+  "error": "Unauthorized"
+}
+
+---
+
+#### 2. Upload Errors
+
+- Missing file → 400 Bad Request  
+- Empty file → 400 Bad Request  
+- Unsupported file type → 400 Bad Request  
+- File too large → 400 Bad Request  
+
+Example:
+{
+  "error": "File not found in request"
+}
+
+---
+
+#### 3. Request Errors
+
+- Missing Content-Type → 400 Bad Request  
+- Invalid Content-Type → 400 Bad Request  
+- Invalid multipart form → 400 Bad Request  
+
+Example:
+{
+  "error": "Content-Type must be multipart/form-data"
+}
+
+---
+
+#### 4. File Access Errors
+
+- File not found → 404 Not Found  
+- File expired → 410 Gone  
+- File revoked → 403 Forbidden  
+
+Example:
+{
+  "error": "File not found"
+}
+
+---
+
+#### 5. Server Errors
+
+- File save failure → 500 Internal Server Error  
+- Database failure → 500 Internal Server Error  
+
+Example:
+{
+  "error": "Database error"
+}
