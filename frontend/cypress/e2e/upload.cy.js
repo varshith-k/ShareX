@@ -1,5 +1,5 @@
-describe('Upload Page Test', () => {
-  it('loads upload page successfully', () => {
+describe('Upload Route Availability', () => {
+  it('opens the upload page successfully', () => {
     cy.visit('/upload', { failOnStatusCode: false });
 
     cy.url().should('include', '/upload');

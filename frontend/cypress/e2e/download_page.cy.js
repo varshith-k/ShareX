@@ -1,5 +1,5 @@
-describe('Public download page smoke test', () => {
-  it('opens public download route successfully', () => {
+describe('Public Download Flow', () => {
+  it('loads a shared file route successfully', () => {
     cy.visit('/download/test-token-123', {
       failOnStatusCode: false,
     });
@@ -8,7 +8,7 @@ describe('Public download page smoke test', () => {
     cy.contains(/sharex|download|file|link/i).should('exist');
   });
 
-  it('handles invalid token route gracefully', () => {
+  it('handles invalid shared links gracefully', () => {
     cy.visit('/download/invalid-token', {
       failOnStatusCode: false,
     });
