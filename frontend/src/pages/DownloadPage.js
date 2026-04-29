@@ -34,7 +34,7 @@ const classifyErrorState = (message = '') => {
     badge: 'Invalid Link',
     title: 'File not found',
     description:
-      'The file link is invalid, unavailable, or may have been removed.',
+      'This file link is invalid, unavailable, or may have been removed.',
     accent: '#475569',
     background: '#f8fafc',
     border: '#cbd5e1',
@@ -65,6 +65,7 @@ const getExpiryState = (metadata) => {
   const expiryDate = new Date(metadata.expiresAt);
   const derivedExpired =
     !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
+
   const isExpired = explicitExpired || derivedExpired;
 
   return {
@@ -75,7 +76,7 @@ const getExpiryState = (metadata) => {
   };
 };
 
-const formatExpiryDate = (value) => {
+const formatDate = (value) => {
   if (!value) return 'Unavailable';
 
   const date = new Date(value);
@@ -105,17 +106,15 @@ const DownloadPage = () => {
       }
     };
 
-    if (!token) {
-      setMetadata(null);
-      setErrorMessage('Missing file token');
-      setLoading(false);
-      return;
+    if (token) {
+      getDetails();
     }
-
-    getDetails();
   }, [token]);
 
+  const expiry = getExpiryState(metadata);
+
   const handleDownload = () => {
+    if (expiry.isExpired) return;
     window.location.href = getDownloadUrl(token);
   };
 
@@ -125,9 +124,9 @@ const DownloadPage = () => {
         <section style={styles.wrapper}>
           <div style={styles.loadingCard}>
             <div style={styles.spinner} />
-            <h2 style={styles.loadingTitle}>Loading file details</h2>
+            <h1 style={styles.loadingTitle}>Preparing your file</h1>
             <p style={styles.loadingText}>
-              Please wait while we prepare the shared file information.
+              ShareX is loading the file details for this public download link.
             </p>
           </div>
         </section>
@@ -163,7 +162,7 @@ const DownloadPage = () => {
 
             <div style={styles.errorActionRow}>
               <Link to="/download" style={styles.primaryLinkButton}>
-                Find Another File
+                Try Another Token
               </Link>
 
               <Link to="/" style={styles.secondaryButton}>
@@ -176,19 +175,21 @@ const DownloadPage = () => {
     );
   }
 
-  const expiry = getExpiryState(metadata);
-
   return (
     <main style={styles.page}>
       <section style={styles.wrapper}>
         <div style={styles.heroCard}>
-          <div style={styles.badge}>Shared File</div>
-
-          <h1 style={styles.fileName}>{metadata?.filename || 'Untitled file'}</h1>
-
-          <p style={styles.subtitle}>
-            Review the file details below and download it securely.
-          </p>
+          <div style={styles.headerRow}>
+            <div>
+              <div style={styles.badge}>Public Share Link</div>
+              <h1 style={styles.fileName} title={metadata?.filename || 'Untitled file'}>
+                {metadata?.filename || 'Untitled file'}
+              </h1>
+              <p style={styles.subtitle}>
+                Review the shared file details before downloading.
+              </p>
+            </div>
+          </div>
 
           <div
             style={{
@@ -202,7 +203,7 @@ const DownloadPage = () => {
           >
             <span style={styles.expiryBannerLabel}>{expiry.label}</span>
             <span style={styles.expiryBannerValue}>
-              {expiry.isPermanent ? expiry.value : formatExpiryDate(expiry.value)}
+              {expiry.isPermanent ? expiry.value : formatDate(expiry.value)}
             </span>
           </div>
 
@@ -216,8 +217,16 @@ const DownloadPage = () => {
           />
 
           <div style={styles.actionRow}>
-            <button type="button" onClick={handleDownload} style={styles.primaryButton}>
-              Download File
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={expiry.isExpired}
+              style={{
+                ...styles.primaryButton,
+                ...(expiry.isExpired ? styles.primaryButtonDisabled : {}),
+              }}
+            >
+              {expiry.isExpired ? 'Download Unavailable' : 'Download File'}
             </button>
 
             <Link to="/download" style={styles.secondaryButton}>
@@ -225,7 +234,9 @@ const DownloadPage = () => {
             </Link>
           </div>
 
-          <p style={styles.footerText}>Securely hosted by ShareX</p>
+          <p style={styles.footerText}>
+            Secure recipient experience powered by ShareX.
+          </p>
         </div>
       </section>
     </main>
@@ -236,11 +247,11 @@ const styles = {
   page: {
     background: 'linear-gradient(180deg, #eff6ff 0%, #f8fafc 45%, #ffffff 100%)',
     minHeight: 'calc(100vh - 110px)',
-    padding: '32px 20px 56px',
+    padding: '32px 18px 56px',
   },
   wrapper: {
     margin: '0 auto',
-    maxWidth: '860px',
+    maxWidth: '900px',
   },
   heroCard: {
     background: '#ffffff',
@@ -248,6 +259,12 @@ const styles = {
     borderRadius: '24px',
     boxShadow: '0 20px 45px rgba(15, 23, 42, 0.10)',
     padding: '32px',
+  },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '20px',
+    flexWrap: 'wrap',
   },
   loadingCard: {
     alignItems: 'center',
@@ -323,15 +340,15 @@ const styles = {
     border: '1px solid #bbf7d0',
   },
   expiryBannerLabel: {
+    color: '#475569',
     fontSize: '0.85rem',
     fontWeight: 700,
     textTransform: 'uppercase',
-    color: '#475569',
   },
   expiryBannerValue: {
+    color: '#0f172a',
     fontSize: '1rem',
     fontWeight: 600,
-    color: '#0f172a',
   },
   actionRow: {
     display: 'flex',
@@ -354,6 +371,10 @@ const styles = {
     fontSize: '1rem',
     fontWeight: 700,
     padding: '14px 22px',
+  },
+  primaryButtonDisabled: {
+    cursor: 'not-allowed',
+    opacity: 0.55,
   },
   primaryLinkButton: {
     background: '#2563eb',
@@ -388,7 +409,7 @@ const styles = {
   loadingText: {
     color: '#475569',
     margin: 0,
-    maxWidth: '420px',
+    maxWidth: '460px',
   },
   errorTitle: {
     color: '#0f172a',

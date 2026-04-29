@@ -24,14 +24,8 @@ const formatDate = (value) => {
 };
 
 const getExpiryText = (expiresAt, isExpired) => {
-  if (isExpired) {
-    return 'Expired';
-  }
-
-  if (!expiresAt) {
-    return 'No expiration';
-  }
-
+  if (isExpired) return 'Expired';
+  if (!expiresAt) return 'No expiration';
   return formatDate(expiresAt);
 };
 
@@ -43,41 +37,69 @@ function FileDetailPanel({
   expiresAt,
   isExpired,
 }) {
+  const details = [
+    {
+      label: 'File name',
+      value: filename || 'Unavailable',
+    },
+    {
+      label: 'Size',
+      value: formatFileSize(size),
+    },
+    {
+      label: 'Token',
+      value: token || 'Unavailable',
+      mono: true,
+    },
+    {
+      label: 'Uploaded',
+      value: formatDate(createdAt),
+    },
+    {
+      label: 'Expiration',
+      value: getExpiryText(expiresAt, isExpired),
+    },
+  ];
+
   return (
-    <div style={styles.panel}>
-      <div style={styles.grid}>
-        <div style={styles.item}>
-          <span style={styles.label}>File name</span>
-          <span style={styles.value}>{filename || 'Unavailable'}</span>
-        </div>
-
-        <div style={styles.item}>
-          <span style={styles.label}>Size</span>
-          <span style={styles.value}>{formatFileSize(size)}</span>
-        </div>
-
-        <div style={styles.item}>
-          <span style={styles.label}>Token</span>
-          <span style={styles.monoValue}>{token || 'Unavailable'}</span>
-        </div>
-
-        <div style={styles.item}>
-          <span style={styles.label}>Uploaded</span>
-          <span style={styles.value}>{formatDate(createdAt)}</span>
-        </div>
-
-        <div style={styles.item}>
-          <span style={styles.label}>Expiration</span>
-          <span style={styles.value}>{getExpiryText(expiresAt, isExpired)}</span>
-        </div>
+    <section style={styles.panel} aria-label="File details">
+      <div style={styles.header}>
+        <h2 style={styles.title}>File details</h2>
+        <p style={styles.description}>
+          Key information about the shared file before download.
+        </p>
       </div>
-    </div>
+
+      <div style={styles.grid}>
+        {details.map((item) => (
+          <div key={item.label} style={styles.item}>
+            <span style={styles.label}>{item.label}</span>
+            <span style={item.mono ? styles.monoValue : styles.value}>
+              {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
 const styles = {
   panel: {
     marginBottom: '28px',
+  },
+  header: {
+    marginBottom: '14px',
+  },
+  title: {
+    color: '#0f172a',
+    fontSize: '1.2rem',
+    margin: '0 0 6px',
+  },
+  description: {
+    color: '#64748b',
+    lineHeight: 1.5,
+    margin: 0,
   },
   grid: {
     display: 'grid',
@@ -91,6 +113,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
+    minWidth: 0,
     padding: '18px',
   },
   label: {

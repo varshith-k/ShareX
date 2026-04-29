@@ -1,111 +1,22 @@
-import React from 'react';
-import { BrowserRouter as Router, Link, Route, Routes } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Dashboard from './pages/Dashboard';
-import Download from './pages/Download';
-import DownloadPage from './pages/DownloadPage';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Upload from './pages/Upload';
+<section style={styles.card}>
+  <p style={styles.kicker}>Final Demo Flow</p>
+  <h1>ShareX File Sharing</h1>
+  <p>
+    ShareX lets users upload files, generate shareable links, and allow
+    recipients to view file details before downloading.
+  </p>
 
-function AppShell() {
-  const { user } = useAuth();
+  <div style={styles.actionRow}>
+    <Link to="/upload" style={styles.primaryLink}>
+      Start Upload Flow
+    </Link>
 
-  return (
-    <div className="app-shell">
-      <header style={styles.header}>
-        <div>
-          <p style={styles.eyebrow}>Sprint 3 Authenticated Model</p>
-          <h1 style={styles.title}>ShareX File Sharing</h1>
-        </div>
+    <Link to="/download" style={styles.secondaryLink}>
+      Open Public Download Flow
+    </Link>
 
-        <nav style={styles.nav}>
-          <Link to="/" style={styles.primaryLink}>Home</Link>
-          {user ? <Link to="/dashboard" style={styles.link}>Dashboard</Link> : <Link to="/login" style={styles.link}>Login</Link>}
-          {!user && <Link to="/register" style={styles.link}>Register</Link>}
-          <Link to="/download" style={styles.link}>Find a file</Link>
-        </nav>
-      </header>
-
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/dashboard"
-          element={(
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/upload"
-          element={(
-            <ProtectedRoute>
-              <Upload />
-            </ProtectedRoute>
-          )}
-        />
-        <Route path="/download" element={<Download />} />
-        <Route path="/download/:token" element={<DownloadPage />} />
-        <Route path="*" element={<Home />} />
-      </Routes>
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <AuthProvider>
-      <Router>
-        <AppShell />
-      </Router>
-    </AuthProvider>
-  );
-}
-
-const styles = {
-  header: {
-    alignItems: 'center',
-    background: 'linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)',
-    color: '#fff',
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '16px',
-    justifyContent: 'space-between',
-    padding: '24px 32px',
-  },
-  eyebrow: {
-    fontSize: '0.8rem',
-    letterSpacing: '0.08em',
-    margin: 0,
-    opacity: 0.8,
-    textTransform: 'uppercase',
-  },
-  title: {
-    margin: '6px 0 0',
-  },
-  nav: {
-    display: 'flex',
-    gap: '12px',
-  },
-  link: {
-    background: 'rgba(255,255,255,0.12)',
-    borderRadius: '999px',
-    color: '#fff',
-    padding: '10px 16px',
-    textDecoration: 'none',
-  },
-  primaryLink: {
-    background: '#fff',
-    borderRadius: '999px',
-    color: '#0f172a',
-    padding: '10px 16px',
-    textDecoration: 'none',
-  },
-};
-
-export default App;
+    <Link to="/login" style={styles.secondaryLink}>
+      Login
+    </Link>
+  </div>
+</section>
