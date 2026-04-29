@@ -8,14 +8,15 @@ function Home() {
           <p style={styles.badge}>Integrated frontend + backend</p>
           <h2 style={styles.heading}>Upload, share, and retrieve files from one place.</h2>
           <p style={styles.copy}>
-            This Sprint 2 build focuses on a working upload-to-download flow, backend API integration,
-            and automated test coverage for both the React app and Go API.
+            Sprint 3 extends the working file-sharing flow with account authentication, owned uploads,
+            and a dashboard where users can manage their links.
           </p>
         </div>
 
         <div style={styles.actions}>
-          <Link to="/upload" style={styles.primaryAction}>Open Upload Flow</Link>
-          <Link to="/download" style={styles.secondaryAction}>Lookup a Download</Link>
+          <Link to="/register" style={styles.primaryAction}>Create account</Link>
+          <Link to="/login" style={styles.secondaryAction}>Open dashboard</Link>
+          <Link to="/download" style={styles.secondaryAction}>Public download</Link>
         </div>
       </section>
     </main>

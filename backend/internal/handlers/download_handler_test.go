@@ -88,6 +88,7 @@ func TestDownloadHandler_ReturnsStoredFile(t *testing.T) {
 		Token:     "download-token",
 		Size:      int64(len("download content")),
 		CreatedAt: time.Now(),
+		IsActive:  true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -129,11 +130,13 @@ func TestDownloadHandler_RevokedFileCannotBeDownloaded(t *testing.T) {
 		Filepath: testFile.Name(),
 		Token:    "revoked-token",
 		Size:     int64(len("revoked content")),
+		IsActive: true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	// Revoke file
 	if err := repo.RevokeByToken("revoked-token"); err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +146,35 @@ func TestDownloadHandler_RevokedFileCannotBeDownloaded(t *testing.T) {
 
 	http.HandlerFunc(DownloadHandler).ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("Expected 404 for revoked file, got %d", rr.Code)
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("Expected 403 for revoked file, got %d", rr.Code)
+	}
+}
+
+func TestDownloadHandler_ExpiredFileCannotBeDownloaded(t *testing.T) {
+	repository.ResetInMemoryStore()
+
+	expiredTime := time.Now().Add(-1 * time.Hour)
+
+	repo := &repository.FileRepository{}
+	err := repo.Create(&models.File{
+		Filename:  "expired.txt",
+		Filepath:  "some/path.txt",
+		Token:     "expired-token",
+		Size:      100,
+		IsActive:  true,
+		ExpiresAt: &expiredTime,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/download/expired-token", nil)
+	rr := httptest.NewRecorder()
+
+	http.HandlerFunc(DownloadHandler).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusGone {
+		t.Fatalf("Expected 410 for expired file, got %d", rr.Code)
 	}
 }

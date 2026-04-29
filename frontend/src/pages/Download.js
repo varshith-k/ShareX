@@ -1,154 +1,120 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { fetchFileMetadata } from '../services/api';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Download() {
-  const { token } = useParams();
   const navigate = useNavigate();
-
-  const [code, setCode] = useState(token || '');
-  const [fileInfo, setFileInfo] = useState(null);
+  const [token, setToken] = useState('');
   const [status, setStatus] = useState('');
 
-  const fetchFile = async (fileCode) => {
-    if (!fileCode.trim()) {
-      setStatus('Enter a file code.');
-      setFileInfo(null);
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    const normalizedToken = token.trim();
+    if (!normalizedToken) {
+      setStatus('Enter a file token to continue.');
       return;
     }
 
-    try {
-      setStatus('Fetching file info...');
-      const data = await fetchFileMetadata(fileCode);
-      setFileInfo(data);
-      setStatus('File found. Open the detail page to download it.');
-    } catch (error) {
-      setFileInfo(null);
-      setStatus(error.message || 'File not found or backend not ready.');
-    }
-  };
-
-  useEffect(() => {
-    if (token) {
-      fetchFile(token);
-    }
-  }, [token]);
-
-  const handleOpenDownload = () => {
-    if (!code.trim()) {
-      setStatus('Enter a file code.');
-      return;
-    }
-
-    navigate(`/download/${code.trim()}`);
+    setStatus('');
+    navigate(`/download/${normalizedToken}`);
   };
 
   return (
-    <main style={styles.container}>
-      <section style={styles.card}>
-        <div>
-          <p style={styles.kicker}>Download lookup</p>
-          <h2>Find a shared file</h2>
-        </div>
+    <main style={styles.page}>
+      <section style={styles.wrapper}>
+        <div style={styles.card}>
+          <p style={styles.kicker}>Public file lookup</p>
+          <h1 style={styles.heading}>Find a shared file</h1>
+          <p style={styles.description}>
+            Paste a shared file token to open the public download page and view its details.
+          </p>
 
-        {!token && (
-          <>
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <label htmlFor="download-token" style={styles.label}>
+              File token
+            </label>
             <input
+              id="download-token"
               type="text"
-              placeholder="Enter file code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              placeholder="Enter file token"
               style={styles.input}
             />
 
-            <button onClick={() => fetchFile(code)} style={styles.button}>
-              Fetch File Info
-            </button>
-          </>
-        )}
-
-        {status && <p style={styles.status}>{status}</p>}
-
-        {fileInfo && (
-          <div style={styles.meta}>
-            <p>
-              <b>Name:</b> {fileInfo.filename}
-            </p>
-            <p>
-              <b>Size:</b> {fileInfo.size} bytes
-            </p>
-            <p>
-              <b>Uploaded:</b> {fileInfo.createdAt}
-            </p>
-
-            <button onClick={handleOpenDownload} style={styles.downloadButton}>
+            <button type="submit" style={styles.button}>
               Open Download Page
             </button>
-            <p style={styles.inlineLinkRow}>
-              <Link to={`/download/${fileInfo.token}`}>Go directly to /download/{fileInfo.token}</Link>
-            </p>
-          </div>
-        )}
+          </form>
+
+          {status && <p style={styles.status}>{status}</p>}
+        </div>
       </section>
     </main>
   );
 }
 
 const styles = {
-  container: { margin: '40px auto', maxWidth: '680px', padding: '0 24px 56px' },
+  page: {
+    background: 'linear-gradient(180deg, #eff6ff 0%, #f8fafc 45%, #ffffff 100%)',
+    minHeight: 'calc(100vh - 110px)',
+    padding: '32px 20px 56px',
+  },
+  wrapper: {
+    margin: '0 auto',
+    maxWidth: '760px',
+  },
   card: {
     background: '#ffffff',
-    border: '1px solid #e2e8f0',
-    borderRadius: '18px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+    border: '1px solid #dbeafe',
+    borderRadius: '24px',
+    boxShadow: '0 20px 45px rgba(15, 23, 42, 0.10)',
     display: 'grid',
-    gap: '16px',
-    marginTop: '20px',
-    padding: '28px',
+    gap: '18px',
+    padding: '32px',
   },
   kicker: {
-    color: '#16a34a',
+    color: '#2563eb',
     fontSize: '0.8rem',
     fontWeight: 700,
     letterSpacing: '0.08em',
     margin: 0,
     textTransform: 'uppercase',
   },
+  heading: {
+    margin: 0,
+  },
+  description: {
+    color: '#475569',
+    lineHeight: 1.6,
+    margin: 0,
+  },
+  form: {
+    display: 'grid',
+    gap: '12px',
+  },
+  label: {
+    fontWeight: 600,
+  },
   input: {
-    border: '1px solid #ccc',
-    borderRadius: '6px',
-    padding: '10px',
-    width: '100%',
+    border: '1px solid #cbd5e1',
+    borderRadius: '12px',
+    fontSize: '1rem',
+    padding: '14px 16px',
   },
   button: {
-    background: '#16a34a',
-    border: 'none',
-    borderRadius: '6px',
-    color: 'white',
-    cursor: 'pointer',
-    marginTop: '16px',
-    padding: '10px 18px',
-  },
-  downloadButton: {
     background: '#2563eb',
     border: 'none',
-    borderRadius: '6px',
-    color: 'white',
+    borderRadius: '12px',
+    color: '#ffffff',
     cursor: 'pointer',
-    marginTop: '16px',
-    padding: '10px 18px',
+    fontWeight: 700,
+    padding: '14px 18px',
   },
-  meta: {
-    background: '#f9fafb',
-    borderRadius: '6px',
-    marginTop: '16px',
-    padding: '12px',
+  status: {
+    color: '#b91c1c',
+    margin: 0,
   },
-  inlineLinkRow: {
-    marginBottom: 0,
-    marginTop: '12px',
-  },
-  status: { fontWeight: '500', marginTop: '14px' },
 };
 
 export default Download;

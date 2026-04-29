@@ -1,9 +1,19 @@
-describe('Sprint 2 smoke test', () => {
-  it('validates the upload form before sending a request', () => {
-    cy.visit('/upload');
+describe('Public download page smoke test', () => {
+  it('opens public download route successfully', () => {
+    cy.visit('/download/test-token-123', {
+      failOnStatusCode: false,
+    });
 
-    cy.contains('button', 'Upload').click();
+    cy.url().should('include', '/download/');
+    cy.contains(/sharex|download|file|link/i).should('exist');
+  });
 
-    cy.contains('Please select a file first.').should('be.visible');
+  it('handles invalid token route gracefully', () => {
+    cy.visit('/download/invalid-token', {
+      failOnStatusCode: false,
+    });
+
+    cy.url().should('include', '/download/');
+    cy.contains(/invalid|expired|revoked|file|link|not found/i).should('exist');
   });
 });

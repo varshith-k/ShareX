@@ -3,37 +3,112 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DownloadPage from './DownloadPage';
 import * as api from '../services/api';
 
-// Mock the API service
 jest.mock('../services/api');
 
-describe('FE2-18: DownloadPage Error State', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+const renderDownloadPage = (token = 'test-token-123') =>
+  render(
+    <MemoryRouter initialEntries={[`/download/${token}`]}>
+      <Routes>
+        <Route path="/download/:token" element={<DownloadPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+
+describe('DownloadPage public flow', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    api.getDownloadUrl.mockReturnValue(
+      'http://localhost:8080/download/test-token-123'
+    );
+  });
+
+  test('renders successful metadata state', async () => {
+    api.fetchFileMetadata.mockResolvedValueOnce({
+      filename: 'resume.pdf',
+      size: 2048,
+      token: 'test-token-123',
+      createdAt: '2026-04-12T10:00:00.000Z',
+      expiresAt: '2035-04-20T10:00:00.000Z',
+      isExpired: false,
     });
 
-    test('displays error message when the file token is invalid or expired', async () => {
-        // 1. Setup the mock to simulate a failed API call (404 Error)
-        api.fetchFileMetadata.mockRejectedValueOnce(new Error('File not found'));
+    renderDownloadPage();
 
-        // 2. Render the component with an invalid token
-        render(
-            <MemoryRouter initialEntries={['/download/invalid-token-999']}>
-                <Routes>
-                    <Route path="/download/:token" element={<DownloadPage />} />
-                </Routes>
-            </MemoryRouter>
-        );
+    expect((await screen.findAllByText(/resume\.pdf/i)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/2\.00 kb/i)).toBeInTheDocument();
 
-        // 3. Verify the "File Not Found" heading appears
-        const errorHeading = await screen.findByText(/File Not Found/i);
-        expect(errorHeading).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /download file/i })
+    ).toBeInTheDocument();
+  });
 
-        // 4. Verify the specific error instruction message is displayed
-        const errorMessage = screen.getByText(/link is invalid or has expired/i);
-        expect(errorMessage).toBeInTheDocument();
-
-        // 5. Ensure the "Back to Home" link is available for the user
-        const homeLink = screen.getByText(/Back to Home/i);
-        expect(homeLink).toBeInTheDocument();
+  test('renders no expiration state', async () => {
+    api.fetchFileMetadata.mockResolvedValueOnce({
+      filename: 'project.zip',
+      size: 4096,
+      token: 'no-expiry-token',
+      createdAt: '2026-04-12T10:00:00.000Z',
+      expiresAt: null,
+      isExpired: false,
     });
+
+    renderDownloadPage('no-expiry-token');
+
+    expect((await screen.findAllByText(/project\.zip/i)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/no expiration/i).length).toBeGreaterThan(0);
+  });
+
+  test('renders expired metadata state', async () => {
+    api.fetchFileMetadata.mockResolvedValueOnce({
+      filename: 'old-file.pdf',
+      size: 1024,
+      token: 'expired-token',
+      createdAt: '2026-04-01T10:00:00.000Z',
+      expiresAt: '2020-04-20T10:00:00.000Z',
+      isExpired: true,
+    });
+
+    renderDownloadPage('expired-token');
+
+    expect((await screen.findAllByText(/old-file\.pdf/i)).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/expired/i).length).toBeGreaterThan(0);
+
+    expect(
+      screen.getByRole('button', { name: /download unavailable/i })
+    ).toBeDisabled();
+  });
+
+  test('renders expired error state', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(
+      new Error('This share link has expired')
+    );
+
+    renderDownloadPage();
+
+    expect(
+      await screen.findByText(/this share link has expired/i)
+    ).toBeInTheDocument();
+  });
+
+  test('renders revoked error state', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(
+      new Error('This share link was revoked')
+    );
+
+    renderDownloadPage();
+
+    expect(
+      await screen.findByText(/this share link has been revoked/i)
+    ).toBeInTheDocument();
+  });
+
+  test('renders invalid fallback state', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(
+      new Error('File not found')
+    );
+
+    renderDownloadPage();
+
+    expect(await screen.findByText(/file not found/i)).toBeInTheDocument();
+  });
 });

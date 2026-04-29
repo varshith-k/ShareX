@@ -4,34 +4,37 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"sharex-backend/internal/repository"
 	"sharex-backend/internal/utils"
 )
 
 func DownloadHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+
+	token := strings.TrimPrefix(r.URL.Path, "/download/")
+	if token == "" {
+		utils.WriteJSONError(w, "Token missing", http.StatusBadRequest)
 		return
 	}
 
-	token := strings.TrimPrefix(r.URL.Path, "/download/")
-	token = strings.TrimSpace(token)
-
-	if token == "" || strings.Contains(token, "/") {
-		utils.WriteJSONError(w, "Invalid token", http.StatusBadRequest)
+	if strings.Contains(token, "/") {
+		utils.WriteJSONError(w, "Invalid token format", http.StatusBadRequest)
 		return
 	}
 
 	repo := repository.FileRepository{}
-	fileMeta, err := repo.GetByToken(token)
+
+	// 🔥 DB FILE (IMPORTANT)
+	dbFile, err := repo.GetByToken(token)
 	if err != nil {
 		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
 		return
 	}
 
-	if !fileMeta.IsActive {
-		utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+	// 🔥 Check revoked
+	if !dbFile.IsActive {
+		utils.WriteJSONError(w, "File link is revoked", http.StatusForbidden)
 		return
 	}
 
@@ -58,6 +61,6 @@ func DownloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	filename := fileMeta.Filename
 
-	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
-	http.ServeContent(w, r, filename, fileMeta.CreatedAt, file)
+	// 🔥 Serve file
+	http.ServeFile(w, r, dbFile.Filepath)
 }
