@@ -38,8 +38,8 @@ func (r *FileRepository) Create(file *models.File) error {
 	}
 
 	query := `
-	INSERT INTO files (filename, filepath, token, size, owner_id, is_active)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	INSERT INTO files (filename, filepath, token, size, owner_id, is_active, expires_at, password_hash)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	RETURNING id, created_at
 	`
 
@@ -53,6 +53,8 @@ func (r *FileRepository) Create(file *models.File) error {
 		file.Size,
 		file.OwnerID,
 		file.IsActive,
+		file.ExpiresAt,
+		file.PasswordHash,
 	).Scan(&file.ID, &file.CreatedAt)
 }
 
@@ -71,7 +73,7 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	}
 
 	query := `
-	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at
+	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at, expires_at, password_hash
 	FROM files
 	WHERE token = $1
 	`
@@ -81,6 +83,8 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 
 	var file models.File
 	var ownerID sql.NullInt64
+	var expiresAt sql.NullTime
+	var passwordHash sql.NullString
 
 	err := database.DB.QueryRow(ctx, query, token).Scan(
 		&file.ID,
@@ -91,6 +95,8 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 		&ownerID,
 		&file.IsActive,
 		&file.CreatedAt,
+		&expiresAt,
+		&passwordHash,
 	)
 
 	if err != nil {
@@ -100,6 +106,16 @@ func (r *FileRepository) GetByToken(token string) (*models.File, error) {
 	if ownerID.Valid {
 		id := int(ownerID.Int64)
 		file.OwnerID = &id
+	}
+
+	if expiresAt.Valid {
+		expiry := expiresAt.Time
+		file.ExpiresAt = &expiry
+	}
+
+	if passwordHash.Valid {
+		hash := passwordHash.String
+		file.PasswordHash = &hash
 	}
 
 	return &file, nil
@@ -124,7 +140,7 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 	}
 
 	query := `
-	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at
+	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at, expires_at, password_hash
 	FROM files
 	WHERE owner_id = $1
 	ORDER BY created_at DESC
@@ -143,6 +159,8 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 	for rows.Next() {
 		var file models.File
 		var owner sql.NullInt64
+		var expiresAt sql.NullTime
+		var passwordHash sql.NullString
 
 		if err := rows.Scan(
 			&file.ID,
@@ -153,6 +171,8 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 			&owner,
 			&file.IsActive,
 			&file.CreatedAt,
+			&expiresAt,
+			&passwordHash,
 		); err != nil {
 			return nil, err
 		}
@@ -160,6 +180,16 @@ func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
 		if owner.Valid {
 			id := int(owner.Int64)
 			file.OwnerID = &id
+		}
+
+		if expiresAt.Valid {
+			expiry := expiresAt.Time
+			file.ExpiresAt = &expiry
+		}
+
+		if passwordHash.Valid {
+			hash := passwordHash.String
+			file.PasswordHash = &hash
 		}
 
 		files = append(files, file)

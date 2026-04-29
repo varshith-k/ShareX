@@ -48,15 +48,36 @@ function Dashboard() {
     }
   }
 
+  function formatExpiration(expiresAt) {
+    if (!expiresAt) {
+      return 'No expiration';
+    }
+
+    const parsed = new Date(expiresAt);
+    if (Number.isNaN(parsed.getTime())) {
+      return 'No expiration';
+    }
+
+    return parsed.toLocaleString();
+  }
+
+  function getFileStatus(file) {
+    if (file.isExpired) {
+      return 'Expired';
+    }
+
+    return file.isActive ? 'Active' : 'Revoked';
+  }
+
   return (
     <main style={styles.page}>
       <section style={styles.hero}>
         <div>
-          <p style={styles.badge}>Authenticated workspace</p>
+          <p style={styles.badge}>Personal workspace</p>
           <h2 style={styles.heading}>Welcome back, {user?.name || 'ShareX user'}.</h2>
           <p style={styles.copy}>
-            Sprint 3 adds account-based ownership. Upload new files here, review your active links,
-            and revoke or delete any share you own.
+            Upload new files, review your active links, and manage every share you own from one
+            secure dashboard.
           </p>
         </div>
 
@@ -72,7 +93,7 @@ function Dashboard() {
           <section style={styles.filesCard}>
             <div style={styles.filesHeader}>
               <div>
-                <p style={styles.badge}>Owner dashboard</p>
+                <p style={styles.badge}>Your shared files</p>
                 <h3 style={{ margin: '8px 0 0' }}>My Files</h3>
               </div>
             </div>
@@ -89,18 +110,23 @@ function Dashboard() {
                       <h4 style={styles.fileName}>{file.filename}</h4>
                       <p style={styles.meta}>Token: {file.token}</p>
                       <p style={styles.meta}>Size: {file.size} bytes</p>
-                      <p style={styles.meta}>Status: {file.isActive ? 'Active' : 'Revoked'}</p>
+                      <p style={styles.meta}>Status: {getFileStatus(file)}</p>
+                      <p style={styles.meta}>Expires: {formatExpiration(file.expiresAt)}</p>
+                      <p style={styles.meta}>
+                        Protection: {file.requiresPassword ? 'Password protected' : 'Public link'}
+                      </p>
                     </div>
 
                     <div style={styles.actions}>
-                      <button
-                        disabled={!file.isActive}
-                        onClick={() => handleRevoke(file.token)}
-                        style={styles.secondaryButton}
-                        type="button"
-                      >
-                        Revoke
-                      </button>
+                      {file.isActive && !file.isExpired && (
+                        <button
+                          onClick={() => handleRevoke(file.token)}
+                          style={styles.secondaryButton}
+                          type="button"
+                        >
+                          Revoke
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(file.token)}
                         style={styles.dangerButton}

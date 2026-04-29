@@ -1,26 +1,25 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 
-test('renders final demo landing page and navigation links', () => {
-  render(
-    <MemoryRouter>
-      <App />
-    </MemoryRouter>
-  );
+jest.mock('./contexts/AuthContext', () => {
+  const actual = jest.requireActual('./contexts/AuthContext');
 
-  expect(screen.getByText(/Final Demo Flow/i)).toBeInTheDocument();
-  expect(screen.getByText(/ShareX File Sharing/i)).toBeInTheDocument();
+  return {
+    ...actual,
+    AuthProvider: ({ children }) => children,
+    useAuth: () => ({
+      loading: false,
+      token: '',
+      user: null,
+    }),
+  };
+});
 
-  expect(
-    screen.getByRole('link', { name: /Start Upload Flow/i })
-  ).toBeInTheDocument();
+test('renders ShareX brand content and auth navigation links', () => {
+  render(<App />);
 
-  expect(
-    screen.getByRole('link', { name: /Open Public Download Flow/i })
-  ).toBeInTheDocument();
-
-  expect(
-    screen.getByRole('link', { name: /Login/i })
-  ).toBeInTheDocument();
+  expect(screen.getByText(/Secure file sharing/i)).toBeInTheDocument();
+  expect(screen.getByAltText(/ShareX logo/i)).toBeInTheDocument();
+  expect(screen.getByText(/Create account/i)).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /Login/i })).toBeInTheDocument();
 });

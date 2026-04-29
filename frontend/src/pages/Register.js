@@ -33,7 +33,7 @@ function Register() {
   return (
     <main style={styles.page}>
       <section style={styles.card}>
-        <p style={styles.kicker}>Sprint 3 Auth</p>
+        <p style={styles.kicker}>Create your account</p>
         <h2>Create your ShareX account</h2>
         <p style={styles.copy}>Register to upload files as an owner and manage your links from the dashboard.</p>
 

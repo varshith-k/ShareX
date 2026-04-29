@@ -35,7 +35,7 @@ function Login() {
   return (
     <main style={styles.page}>
       <section style={styles.card}>
-        <p style={styles.kicker}>Sprint 3 Auth</p>
+        <p style={styles.kicker}>Welcome back</p>
         <h2>Sign in to your ShareX workspace</h2>
         <p style={styles.copy}>Access your private dashboard, upload owned files, and manage active links.</p>
 

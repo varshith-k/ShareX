@@ -319,6 +319,80 @@ func TestMyFilesHandler_ReturnsAuthenticatedUsersFiles(t *testing.T) {
 	}
 }
 
+func TestMyFilesHandler_MarksExpiredFilesInOwnerList(t *testing.T) {
+	repository.ResetInMemoryStore()
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	userID := 111
+	expiredAt := time.Now().Add(-2 * time.Minute)
+	tempDir := t.TempDir()
+	filePath := filepath.Join(tempDir, "expired-owner-file.txt")
+	if err := os.WriteFile(filePath, []byte("expired"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	repo := repository.FileRepository{}
+	if err := repo.Create(&models.File{
+		Filename:  "expired-owner-file.txt",
+		Filepath:  filePath,
+		Token:     "expired-owner-token",
+		Size:      7,
+		OwnerID:   &userID,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		ExpiresAt: &expiredAt,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	token, err := services.GenerateJWT(userID, "owner@example.com", "Owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/me/files", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+
+	handler := middleware.AuthMiddleware(http.HandlerFunc(MyFilesHandler))
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d", rr.Code)
+	}
+
+	var response struct {
+		Files []struct {
+			Token     string `json:"token"`
+			IsActive  bool   `json:"isActive"`
+			IsExpired bool   `json:"isExpired"`
+		} `json:"files"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("Expected valid JSON response: %v", err)
+	}
+
+	if len(response.Files) != 1 {
+		t.Fatalf("Expected 1 file, got %d", len(response.Files))
+	}
+
+	if response.Files[0].Token != "expired-owner-token" {
+		t.Fatalf("Expected expired file token in response, got %s", response.Files[0].Token)
+	}
+
+	if response.Files[0].IsActive {
+		t.Fatalf("Expected expired file to be reported inactive")
+	}
+
+	if !response.Files[0].IsExpired {
+		t.Fatalf("Expected expired file to be flagged as expired")
+	}
+
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		t.Fatalf("Expected expired file to be cleaned up from disk")
+	}
+}
+
 func TestMyFilesHandler_InvalidTokenReturnsUnauthorized(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/me/files", nil)
 	req.Header.Set("Authorization", "Bearer invalid-token")

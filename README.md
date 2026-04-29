@@ -1,6 +1,6 @@
 # ShareX
 
-ShareX is a full-stack file sharing application built for a 4-sprint software engineering project. By the end of Sprint 3, the project supports authenticated file uploads, token-based downloads, file metadata lookup, and owner-managed file actions through an integrated React frontend and Go backend.
+ShareX is a full-stack file sharing application built for a 4-sprint software engineering project. By the end of Sprint 4, the project supports authenticated file uploads, token-based downloads, file metadata lookup, owner-managed file actions, production-style Docker deployment, and final test/demo documentation.
 
 ## Team
 
@@ -62,18 +62,23 @@ Status:
 
 - Sprint 3 completed
 
-### Sprint 4 - Remaining Work
+### Sprint 4 - Deployment and Final Project Polish
 
-Planned / left to complete:
+Completed:
 
-- Deployment of frontend and backend to a live environment
-- Production-ready environment configuration
-- README updates for final project usage and deployment
-- Final Cypress expansion and full regression checks
-- Final backend API documentation cleanup
-- Live user testing and feedback collection
-- Final project demo/pitch preparation
-- Sprint 4 submission documentation and closing polish
+- Dockerized backend service
+- Dockerized frontend service
+- Full-stack `docker-compose.yml` for frontend, backend, and PostgreSQL
+- Environment-based production configuration
+- Final README run/use/deployment instructions
+- Final Sprint4.md submission documentation
+- Backend API documentation and error-case reference
+- Backend and frontend test summaries
+- Final demo and release verification checklist
+
+Status:
+
+- Sprint 4 completed and ready for final submission
 
 ## Tech Stack
 
@@ -119,6 +124,8 @@ ShareX/
 ├── backend/       Go backend API
 ├── Sprint2.md     Sprint 2 submission documentation
 ├── Sprint3.md     Sprint 3 submission documentation
+├── Sprint4.md     Sprint 4 final submission documentation
+├── docker-compose.yml
 └── README.md
 ```
 
@@ -126,7 +133,7 @@ ShareX/
 
 ### Frontend
 
-- Home page with Sprint 3 overview
+- Home page with project overview
 - Register page
 - Login page
 - Protected dashboard
@@ -295,7 +302,7 @@ Services:
 - Upload/download flow works end-to-end
 - Auth flow works (`/auth/register`, `/auth/login`, protected routes)
 
-## Sprint 3 API Summary
+## Final Backend API Summary
 
 ### Public routes
 
@@ -383,17 +390,19 @@ Authorization: Bearer <jwt-token>
 
 ## Current Status
 
-The repository on `main` now reflects the final Sprint 3 submission state. The application supports authenticated uploads, protected user file management, and public token-based downloads with frontend and backend test coverage.
+The repository on `main` reflects the final Sprint 4 project state. The application supports authenticated uploads, protected user file management, public token-based downloads, Docker-based deployment, and frontend/backend test coverage.
 
 ## Submission Notes
 
-For Sprint 3 submission materials, see:
+For final submission materials, see:
 
 - [Sprint3.md](./Sprint3.md)
+- [Sprint4.md](./Sprint4.md)
 
-That document includes:
+The Sprint 4 document includes:
 
-- Work completed in Sprint 3
-- Frontend unit test list
+- Work completed in Sprint 4
+- Frontend unit and Cypress test list
 - Backend unit test list
 - Updated backend API documentation
+- Deployment/runbook and final demo checklist

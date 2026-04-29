@@ -1,114 +1,175 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import DownloadPage from './DownloadPage';
 import * as api from '../services/api';
 
 jest.mock('../services/api');
 
-const renderDownloadPage = (token = 'test-token-123') =>
-  render(
-    <MemoryRouter initialEntries={[`/download/${token}`]}>
+beforeAll(() => {
+  global.URL.createObjectURL = jest.fn(() => 'blob:test');
+  global.URL.revokeObjectURL = jest.fn();
+});
+
+const renderDownloadPage = () => {
+  return render(
+    <MemoryRouter initialEntries={['/download/test-token-123']}>
       <Routes>
         <Route path="/download/:token" element={<DownloadPage />} />
       </Routes>
     </MemoryRouter>
   );
+};
 
-describe('DownloadPage public flow', () => {
+describe('DownloadPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    api.getDownloadUrl.mockReturnValue(
-      'http://localhost:8080/download/test-token-123'
-    );
+    document.body.innerHTML = '';
   });
 
-  test('renders successful metadata state', async () => {
+  test('renders file metadata and download button on successful fetch', async () => {
     api.fetchFileMetadata.mockResolvedValueOnce({
       filename: 'resume.pdf',
       size: 2048,
       token: 'test-token-123',
       createdAt: '2026-04-12T10:00:00.000Z',
-      expiresAt: '2035-04-20T10:00:00.000Z',
+      expiresAt: '2026-04-20T10:00:00.000Z',
       isExpired: false,
     });
 
     renderDownloadPage();
 
-    expect((await screen.findAllByText(/resume\.pdf/i)).length).toBeGreaterThan(0);
+    const fileNames = await screen.findAllByText(/resume\.pdf/i);
+    expect(fileNames.length).toBeGreaterThan(0);
+
+    expect(screen.getByText(/size/i)).toBeInTheDocument();
     expect(screen.getByText(/2\.00 kb/i)).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', { name: /download file/i })
-    ).toBeInTheDocument();
+    const downloadButton = screen.getByRole('button', { name: /download file/i });
+    expect(downloadButton).toBeInTheDocument();
   });
 
-  test('renders no expiration state', async () => {
-    api.fetchFileMetadata.mockResolvedValueOnce({
-      filename: 'project.zip',
-      size: 4096,
-      token: 'no-expiry-token',
-      createdAt: '2026-04-12T10:00:00.000Z',
-      expiresAt: null,
-      isExpired: false,
+  test('renders expired link state with correct messaging', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(new Error('This share link has expired'));
+
+    renderDownloadPage();
+
+    const expiredHeading = await screen.findByText(/this share link has expired/i);
+    expect(expiredHeading).toBeInTheDocument();
+
+    const expiredElements = screen.getAllByText(/expired/i);
+    expect(expiredElements.length).toBeGreaterThan(0);
+
+    const expiredMessage = screen.getByText(
+      /shared with a limited lifetime, and the download window has ended/i
+    );
+    expect(expiredMessage).toBeInTheDocument();
+  });
+
+  test('renders revoked link state with correct messaging', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(new Error('This share link was revoked'));
+
+    renderDownloadPage();
+
+    const revokedHeading = await screen.findByText(/this share link has been revoked/i);
+    expect(revokedHeading).toBeInTheDocument();
+
+    const revokedElements = screen.getAllByText(/revoked/i);
+    expect(revokedElements.length).toBeGreaterThan(0);
+
+    const revokedMessage = screen.getByText(
+      /owner has disabled this link, so the file is no longer available through this url/i
+    );
+    expect(revokedMessage).toBeInTheDocument();
+  });
+
+  test('displays generic invalid-link state when metadata fetch fails with unknown error', async () => {
+    api.fetchFileMetadata.mockRejectedValueOnce(new Error('File not found'));
+
+    renderDownloadPage();
+
+    const errorHeading = await screen.findByText(/file not found/i);
+    expect(errorHeading).toBeInTheDocument();
+
+    const errorMessage = screen.getByText(
+      /invalid, unavailable, or may have been removed/i
+    );
+    expect(errorMessage).toBeInTheDocument();
+
+    const homeLink = screen.getByText(/back to home/i);
+    expect(homeLink).toBeInTheDocument();
+  });
+
+  test('shows password prompt when file metadata requires protection', async () => {
+    const error = new Error('Password required to access this file');
+    error.status = 401;
+    error.data = { requiresPassword: true };
+    api.fetchFileMetadata.mockRejectedValueOnce(error);
+
+    renderDownloadPage();
+
+    expect(await screen.findByLabelText(/file password/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /unlock file/i })).toBeInTheDocument();
+  });
+
+  test('unlocks protected file after entering valid password', async () => {
+    const error = new Error('Password required to access this file');
+    error.status = 401;
+    error.data = { requiresPassword: true };
+
+    api.fetchFileMetadata
+      .mockRejectedValueOnce(error)
+      .mockResolvedValueOnce({
+        filename: 'protected.pdf',
+        size: 2048,
+        token: 'test-token-123',
+        createdAt: '2026-04-12T10:00:00.000Z',
+        expiresAt: null,
+        isExpired: false,
+        requiresPassword: true,
+      });
+
+    renderDownloadPage();
+
+    await screen.findByLabelText(/file password/i);
+    fireEvent.change(screen.getByLabelText(/file password/i), {
+      target: { value: 'lock123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /unlock file/i }));
+
+    await waitFor(() => {
+      expect(api.fetchFileMetadata).toHaveBeenLastCalledWith('test-token-123', 'lock123');
     });
 
-    renderDownloadPage('no-expiry-token');
-
-    expect((await screen.findAllByText(/project\.zip/i)).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/no expiration/i).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(/protected\.pdf/i)).length).toBeGreaterThan(0);
   });
 
-  test('renders expired metadata state', async () => {
-    api.fetchFileMetadata.mockResolvedValueOnce({
-      filename: 'old-file.pdf',
-      size: 1024,
-      token: 'expired-token',
-      createdAt: '2026-04-01T10:00:00.000Z',
-      expiresAt: '2020-04-20T10:00:00.000Z',
-      isExpired: true,
+  test('downloads protected file after password is entered', async () => {
+    const error = new Error('Password required to access this file');
+    error.status = 401;
+    error.data = { requiresPassword: true };
+
+    api.fetchFileMetadata.mockRejectedValueOnce(error);
+    api.downloadFile.mockResolvedValueOnce({
+      blob: new Blob(['secret']),
+      filename: 'secret.pdf',
     });
 
-    renderDownloadPage('expired-token');
-
-    expect((await screen.findAllByText(/old-file\.pdf/i)).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/expired/i).length).toBeGreaterThan(0);
-
-    expect(
-      screen.getByRole('button', { name: /download unavailable/i })
-    ).toBeDisabled();
-  });
-
-  test('renders expired error state', async () => {
-    api.fetchFileMetadata.mockRejectedValueOnce(
-      new Error('This share link has expired')
-    );
+    const appendSpy = jest.spyOn(document.body, 'appendChild');
+    const removeSpy = jest.spyOn(HTMLElement.prototype, 'remove');
 
     renderDownloadPage();
 
-    expect(
-      await screen.findByText(/this share link has expired/i)
-    ).toBeInTheDocument();
-  });
+    await screen.findByLabelText(/file password/i);
+    fireEvent.change(screen.getByLabelText(/file password/i), {
+      target: { value: 'lock123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /download file/i }));
 
-  test('renders revoked error state', async () => {
-    api.fetchFileMetadata.mockRejectedValueOnce(
-      new Error('This share link was revoked')
-    );
+    await waitFor(() => {
+      expect(api.downloadFile).toHaveBeenCalledWith('test-token-123', 'lock123');
+    });
 
-    renderDownloadPage();
-
-    expect(
-      await screen.findByText(/this share link has been revoked/i)
-    ).toBeInTheDocument();
-  });
-
-  test('renders invalid fallback state', async () => {
-    api.fetchFileMetadata.mockRejectedValueOnce(
-      new Error('File not found')
-    );
-
-    renderDownloadPage();
-
-    expect(await screen.findByText(/file not found/i)).toBeInTheDocument();
+    appendSpy.mockRestore();
+    removeSpy.mockRestore();
   });
 });

@@ -30,6 +30,8 @@ describe('Upload page', () => {
   test('uploads a file and shows the returned share panel', async () => {
     api.uploadFile.mockResolvedValueOnce({
       downloadUrl: '/download/test-token',
+      expiresAt: '2026-05-01T10:30:00.000Z',
+      requiresPassword: true,
       token: 'test-token',
     });
 
@@ -43,10 +45,16 @@ describe('Upload page', () => {
     const file = new File(['hello'], 'hello.txt', { type: 'text/plain' });
 
     fireEvent.change(input, { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText(/link expiration/i), {
+      target: { value: '168' },
+    });
+    fireEvent.change(screen.getByLabelText(/file password/i), {
+      target: { value: 'lock123' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /upload/i }));
 
     await waitFor(() => {
-      expect(api.uploadFile).toHaveBeenCalledWith(file, '');
+      expect(api.uploadFile).toHaveBeenCalledWith(file, '', '168', 'lock123');
     });
 
     expect(await screen.findByText(/upload successful/i)).toBeInTheDocument();
@@ -54,6 +62,24 @@ describe('Upload page', () => {
     expect(screen.getByText(/http:\/\/localhost\/download\/test-token/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /copy link/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open share page/i })).toBeInTheDocument();
+    expect(screen.getByText(/5\/1\/2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/password protected/i)).toBeInTheDocument();
+  });
+
+  test('shows expiration helper text when selection changes', () => {
+    render(
+      <MemoryRouter>
+        <Upload />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/link stays active until revoked/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/link expiration/i), {
+      target: { value: '24' },
+    });
+
+    expect(screen.getByText(/best for quick one-time sharing/i)).toBeInTheDocument();
   });
 
   test('shows error when file size exceeds limit', async () => {
@@ -64,10 +90,9 @@ describe('Upload page', () => {
     );
 
     const input = screen.getByLabelText(/choose file/i);
-
     const largeFile = new File(
-      [new ArrayBuffer(6 * 1024 * 1024)], 
-      'large-file.txt', 
+      [new ArrayBuffer(6 * 1024 * 1024)],
+      'large-file.txt',
       { type: 'text/plain' }
     );
 

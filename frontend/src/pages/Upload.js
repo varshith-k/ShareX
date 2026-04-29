@@ -3,6 +3,19 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadFile } from '../services/api';
 
+const expirationOptions = [
+  { label: 'No expiration', value: 'never', summary: 'Link stays active until revoked.' },
+  { label: '1 minute (test)', value: '1m', summary: 'Temporary option for quickly testing expired-link behavior.' },
+  { label: '24 hours', value: '24', summary: 'Best for quick one-time sharing.' },
+  { label: '7 days', value: '168', summary: 'Good for short project handoffs.' },
+  { label: '30 days', value: '720', summary: 'Useful for longer review windows.' },
+  { label: '90 days', value: '2160', summary: 'Best for extended access without forever links.' },
+];
+
+function getExpirationSummary(value) {
+  return expirationOptions.find((option) => option.value === value) || expirationOptions[0];
+}
+
 function Upload({ onUploaded, token }) {
   const auth = useAuth();
   const [file, setFile] = useState(null);
@@ -10,8 +23,11 @@ function Upload({ onUploaded, token }) {
   const [progress, setProgress] = useState(0);
   const [shareData, setShareData] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [expiresInHours, setExpiresInHours] = useState('never');
+  const [password, setPassword] = useState('');
   const activeToken = token || auth.token;
   const [copyStatus, setCopyStatus] = useState('');
+  const expirationSummary = getExpirationSummary(expiresInHours);
 
   const shareLink = useMemo(() => {
     if (!shareData?.token) {
@@ -44,7 +60,7 @@ function Upload({ onUploaded, token }) {
       setCopyStatus('');
       setStatus('Uploading file to the backend...');
 
-      const response = await uploadFile(file, activeToken);
+      const response = await uploadFile(file, activeToken, expiresInHours, password);
       setProgress(100);
       setShareData(response);
       setStatus('Upload successful. Your share link is ready.');
@@ -97,6 +113,42 @@ function Upload({ onUploaded, token }) {
             onChange={(event) => setFile(event.target.files?.[0] || null)}
             style={styles.input}
           />
+        </div>
+
+        <div style={styles.inputGroup}>
+          <label htmlFor="expiration-select" style={styles.label}>
+            Link expiration
+          </label>
+          <select
+            id="expiration-select"
+            value={expiresInHours}
+            onChange={(event) => setExpiresInHours(event.target.value)}
+            style={styles.select}
+          >
+            {expirationOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p style={styles.helperText}>{expirationSummary.summary}</p>
+        </div>
+
+        <div style={styles.inputGroup}>
+          <label htmlFor="file-password" style={styles.label}>
+            File password
+          </label>
+          <input
+            id="file-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Optional password for this shared file"
+            style={styles.input}
+          />
+          <p style={styles.helperText}>
+            Leave blank for open access, or add a password to protect the share page and download.
+          </p>
         </div>
 
         <div style={styles.actionRow}>
@@ -162,6 +214,22 @@ function Upload({ onUploaded, token }) {
                 <span style={styles.metaLabel}>Backend download URL</span>
                 <span style={styles.metaValue}>{shareData.downloadUrl}</span>
               </div>
+
+              <div style={styles.metaItem}>
+                <span style={styles.metaLabel}>Expiration</span>
+                <span style={styles.metaValue}>
+                  {shareData.expiresAt
+                    ? new Date(shareData.expiresAt).toLocaleString()
+                    : 'No expiration'}
+                </span>
+              </div>
+
+              <div style={styles.metaItem}>
+                <span style={styles.metaLabel}>Protection</span>
+                <span style={styles.metaValue}>
+                  {shareData.requiresPassword ? 'Password protected' : 'Public link'}
+                </span>
+              </div>
             </div>
 
             <div style={styles.linkActions}>
@@ -221,6 +289,17 @@ const styles = {
     border: '1px solid #cbd5e1',
     borderRadius: '10px',
     padding: '10px',
+  },
+  select: {
+    background: '#fff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '10px',
+    padding: '10px',
+  },
+  helperText: {
+    color: '#64748b',
+    fontSize: '0.92rem',
+    margin: 0,
   },
   actionRow: {
     display: 'flex',

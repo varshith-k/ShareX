@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import FileDetailPanel from '../components/FileDetailPanel';
-import { fetchFileMetadata, getDownloadUrl } from '../services/api';
+import { downloadFile, fetchFileMetadata } from '../services/api';
 
 const classifyErrorState = (message = '') => {
   const normalized = message.toLowerCase();
@@ -34,7 +34,7 @@ const classifyErrorState = (message = '') => {
     badge: 'Invalid Link',
     title: 'File not found',
     description:
-      'This file link is invalid, unavailable, or may have been removed.',
+      'The file link is invalid, unavailable, or may have been removed.',
     accent: '#475569',
     background: '#f8fafc',
     border: '#cbd5e1',
@@ -65,7 +65,6 @@ const getExpiryState = (metadata) => {
   const expiryDate = new Date(metadata.expiresAt);
   const derivedExpired =
     !Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now();
-
   const isExpired = explicitExpired || derivedExpired;
 
   return {
@@ -76,7 +75,7 @@ const getExpiryState = (metadata) => {
   };
 };
 
-const formatDate = (value) => {
+const formatExpiryDate = (value) => {
   if (!value) return 'Unavailable';
 
   const date = new Date(value);
@@ -90,32 +89,74 @@ const DownloadPage = () => {
   const [metadata, setMetadata] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [password, setPassword] = useState('');
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  useEffect(() => {
-    const getDetails = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchFileMetadata(token);
-        setMetadata(data);
-        setErrorMessage('');
-      } catch (err) {
+  const loadDetails = useCallback(async (activePassword = '') => {
+    try {
+      setLoading(true);
+      const data = await fetchFileMetadata(token, activePassword);
+      setMetadata(data);
+      setErrorMessage('');
+      setRequiresPassword(data.requiresPassword === true);
+      setPasswordError('');
+    } catch (err) {
+      if (err?.status === 401 && err?.data?.requiresPassword === true) {
         setMetadata(null);
+        setRequiresPassword(true);
+        setPasswordError(err?.message || 'Password required');
+        setErrorMessage('');
+      } else {
+        setMetadata(null);
+        setRequiresPassword(false);
+        setPasswordError('');
         setErrorMessage(err?.message || 'Request failed');
-      } finally {
-        setLoading(false);
       }
-    };
-
-    if (token) {
-      getDetails();
+    } finally {
+      setLoading(false);
     }
   }, [token]);
 
-  const expiry = getExpiryState(metadata);
+  useEffect(() => {
+    if (!token) {
+      setMetadata(null);
+      setErrorMessage('Missing file token');
+      setLoading(false);
+      return;
+    }
 
-  const handleDownload = () => {
-    if (expiry.isExpired) return;
-    window.location.href = getDownloadUrl(token);
+    loadDetails('');
+  }, [token, loadDetails]);
+
+  const handleProtectedAccess = async () => {
+    await loadDetails(password);
+  };
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const result = await downloadFile(token, password);
+      const objectUrl = window.URL.createObjectURL(result.blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = result.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(objectUrl);
+      setPasswordError('');
+    } catch (err) {
+      if (err?.status === 401) {
+        setRequiresPassword(true);
+        setPasswordError(err?.message || 'Password required');
+      } else {
+        setErrorMessage(err?.message || 'Unable to download file');
+      }
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   if (loading) {
@@ -124,9 +165,9 @@ const DownloadPage = () => {
         <section style={styles.wrapper}>
           <div style={styles.loadingCard}>
             <div style={styles.spinner} />
-            <h1 style={styles.loadingTitle}>Preparing your file</h1>
+            <h2 style={styles.loadingTitle}>Loading file details</h2>
             <p style={styles.loadingText}>
-              ShareX is loading the file details for this public download link.
+              Please wait while we prepare the shared file information.
             </p>
           </div>
         </section>
@@ -162,7 +203,7 @@ const DownloadPage = () => {
 
             <div style={styles.errorActionRow}>
               <Link to="/download" style={styles.primaryLinkButton}>
-                Try Another Token
+                Find Another File
               </Link>
 
               <Link to="/" style={styles.secondaryButton}>
@@ -175,58 +216,93 @@ const DownloadPage = () => {
     );
   }
 
+  const expiry = getExpiryState(metadata);
+  const displayName = metadata?.filename || (requiresPassword ? 'Protected file' : 'Untitled file');
+
   return (
     <main style={styles.page}>
       <section style={styles.wrapper}>
         <div style={styles.heroCard}>
-          <div style={styles.headerRow}>
-            <div>
-              <div style={styles.badge}>Public Share Link</div>
-              <h1 style={styles.fileName} title={metadata?.filename || 'Untitled file'}>
-                {metadata?.filename || 'Untitled file'}
-              </h1>
-              <p style={styles.subtitle}>
-                Review the shared file details before downloading.
-              </p>
+          <div style={styles.badge}>{requiresPassword ? 'Protected File' : 'Shared File'}</div>
+
+          <h1 style={styles.fileName}>{displayName}</h1>
+
+          <p style={styles.subtitle}>
+            {requiresPassword
+              ? 'Enter the file password to unlock the share details and complete the download.'
+              : 'Review the file details below and download it securely.'}
+          </p>
+
+          {requiresPassword && (
+            <div style={styles.passwordPanel}>
+              <div style={styles.passwordIntro}>
+                <span style={styles.passwordBadge}>Password protected</span>
+                <p style={styles.passwordCopy}>
+                  This shared file is protected. Ask the sender for the password before continuing.
+                </p>
+              </div>
+
+              <div style={styles.passwordForm}>
+                <label htmlFor="share-password" style={styles.passwordLabel}>
+                  File password
+                </label>
+                <input
+                  id="share-password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter file password"
+                  style={styles.passwordInput}
+                />
+                <button type="button" onClick={handleProtectedAccess} style={styles.unlockButton}>
+                  Unlock File
+                </button>
+              </div>
+
+              {passwordError && <p style={styles.passwordError}>{passwordError}</p>}
             </div>
-          </div>
+          )}
 
-          <div
-            style={{
-              ...styles.expiryBanner,
-              ...(expiry.isExpired
-                ? styles.expiryBannerExpired
-                : expiry.isPermanent
-                ? styles.expiryBannerPermanent
-                : styles.expiryBannerActive),
-            }}
-          >
-            <span style={styles.expiryBannerLabel}>{expiry.label}</span>
-            <span style={styles.expiryBannerValue}>
-              {expiry.isPermanent ? expiry.value : formatDate(expiry.value)}
-            </span>
-          </div>
+          {metadata && (
+            <>
+              <div
+                style={{
+                  ...styles.expiryBanner,
+                  ...(expiry.isExpired
+                    ? styles.expiryBannerExpired
+                    : expiry.isPermanent
+                    ? styles.expiryBannerPermanent
+                    : styles.expiryBannerActive),
+                }}
+              >
+                <span style={styles.expiryBannerLabel}>{expiry.label}</span>
+                <span style={styles.expiryBannerValue}>
+                  {expiry.isPermanent ? expiry.value : formatExpiryDate(expiry.value)}
+                </span>
+              </div>
 
-          <FileDetailPanel
-            filename={metadata?.filename}
-            size={metadata?.size}
-            token={token}
-            createdAt={metadata?.createdAt}
-            expiresAt={metadata?.expiresAt}
-            isExpired={expiry.isExpired}
-          />
+              <FileDetailPanel
+                filename={metadata?.filename}
+                size={metadata?.size}
+                token={token}
+                createdAt={metadata?.createdAt}
+                expiresAt={metadata?.expiresAt}
+                isExpired={expiry.isExpired}
+              />
+            </>
+          )}
 
           <div style={styles.actionRow}>
             <button
               type="button"
               onClick={handleDownload}
-              disabled={expiry.isExpired}
               style={{
                 ...styles.primaryButton,
-                ...(expiry.isExpired ? styles.primaryButtonDisabled : {}),
+                ...(requiresPassword && !password.trim() ? styles.primaryButtonDisabled : {}),
               }}
+              disabled={requiresPassword && !password.trim()}
             >
-              {expiry.isExpired ? 'Download Unavailable' : 'Download File'}
+              {isDownloading ? 'Preparing download...' : 'Download File'}
             </button>
 
             <Link to="/download" style={styles.secondaryButton}>
@@ -234,9 +310,7 @@ const DownloadPage = () => {
             </Link>
           </div>
 
-          <p style={styles.footerText}>
-            Secure recipient experience powered by ShareX.
-          </p>
+          <p style={styles.footerText}>Securely hosted by ShareX</p>
         </div>
       </section>
     </main>
@@ -247,11 +321,11 @@ const styles = {
   page: {
     background: 'linear-gradient(180deg, #eff6ff 0%, #f8fafc 45%, #ffffff 100%)',
     minHeight: 'calc(100vh - 110px)',
-    padding: '32px 18px 56px',
+    padding: '32px 20px 56px',
   },
   wrapper: {
     margin: '0 auto',
-    maxWidth: '900px',
+    maxWidth: '860px',
   },
   heroCard: {
     background: '#ffffff',
@@ -259,12 +333,6 @@ const styles = {
     borderRadius: '24px',
     boxShadow: '0 20px 45px rgba(15, 23, 42, 0.10)',
     padding: '32px',
-  },
-  headerRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: '20px',
-    flexWrap: 'wrap',
   },
   loadingCard: {
     alignItems: 'center',
@@ -340,15 +408,72 @@ const styles = {
     border: '1px solid #bbf7d0',
   },
   expiryBannerLabel: {
-    color: '#475569',
     fontSize: '0.85rem',
     fontWeight: 700,
     textTransform: 'uppercase',
+    color: '#475569',
   },
   expiryBannerValue: {
-    color: '#0f172a',
     fontSize: '1rem',
     fontWeight: 600,
+    color: '#0f172a',
+  },
+  passwordPanel: {
+    background: '#eff6ff',
+    border: '1px solid #bfdbfe',
+    borderRadius: '18px',
+    display: 'grid',
+    gap: '16px',
+    marginBottom: '24px',
+    padding: '20px',
+  },
+  passwordIntro: {
+    display: 'grid',
+    gap: '8px',
+  },
+  passwordBadge: {
+    color: '#1d4ed8',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
+  passwordCopy: {
+    color: '#475569',
+    lineHeight: 1.6,
+    margin: 0,
+  },
+  passwordForm: {
+    alignItems: 'end',
+    display: 'grid',
+    gap: '12px',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+  },
+  passwordLabel: {
+    display: 'block',
+    fontWeight: 600,
+    gridColumn: '1 / -1',
+  },
+  passwordInput: {
+    border: '1px solid #cbd5e1',
+    borderRadius: '12px',
+    fontSize: '1rem',
+    padding: '14px 16px',
+  },
+  unlockButton: {
+    background: '#ffffff',
+    border: '1px solid #cbd5e1',
+    borderRadius: '12px',
+    color: '#0f172a',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    fontWeight: 600,
+    padding: '14px 20px',
+  },
+  passwordError: {
+    color: '#b91c1c',
+    fontWeight: 500,
+    margin: 0,
   },
   actionRow: {
     display: 'flex',
@@ -374,7 +499,7 @@ const styles = {
   },
   primaryButtonDisabled: {
     cursor: 'not-allowed',
-    opacity: 0.55,
+    opacity: 0.7,
   },
   primaryLinkButton: {
     background: '#2563eb',
@@ -409,7 +534,7 @@ const styles = {
   loadingText: {
     color: '#475569',
     margin: 0,
-    maxWidth: '460px',
+    maxWidth: '420px',
   },
   errorTitle: {
     color: '#0f172a',

@@ -5,11 +5,11 @@ function Home() {
     <main style={styles.page}>
       <section style={styles.hero}>
         <div>
-          <p style={styles.badge}>Integrated frontend + backend</p>
+          <p style={styles.badge}>Fast, secure sharing</p>
           <h2 style={styles.heading}>Upload, share, and retrieve files from one place.</h2>
           <p style={styles.copy}>
-            Sprint 3 extends the working file-sharing flow with account authentication, owned uploads,
-            and a dashboard where users can manage their links.
+            ShareX combines secure uploads, public download links, and account-based file
+            management in one streamlined workflow.
           </p>
         </div>
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
@@ -184,13 +185,21 @@ func MyFilesHandler(w http.ResponseWriter, r *http.Request) {
 
 	items := make([]map[string]any, 0, len(files))
 	for _, file := range files {
+		isExpired := file.ExpiresAt != nil && file.ExpiresAt.Before(time.Now())
+		if isExpired {
+			_ = cleanupExpiredFile(&file)
+		}
+
 		items = append(items, map[string]any{
-			"id":        file.ID,
-			"filename":  file.Filename,
-			"token":     file.Token,
-			"size":      file.Size,
-			"isActive":  file.IsActive,
-			"createdAt": file.CreatedAt,
+			"id":               file.ID,
+			"filename":         file.Filename,
+			"token":            file.Token,
+			"size":             file.Size,
+			"isActive":         file.IsActive && !isExpired,
+			"isExpired":        isExpired,
+			"createdAt":        file.CreatedAt,
+			"expiresAt":        file.ExpiresAt,
+			"requiresPassword": file.PasswordHash != nil,
 		})
 	}
 
@@ -232,13 +241,10 @@ func DeleteMyFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := os.Remove(file.Filepath); err != nil {
-		if os.IsNotExist(err) {
-			utils.WriteJSONError(w, "File not found", http.StatusNotFound)
+		if !os.IsNotExist(err) {
+			utils.WriteJSONError(w, "Unable to delete file", http.StatusInternalServerError)
 			return
 		}
-
-		utils.WriteJSONError(w, "Unable to delete file", http.StatusInternalServerError)
-		return
 	}
 
 	if err := repo.DeleteByToken(token); err != nil {

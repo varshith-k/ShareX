@@ -4,7 +4,10 @@ async function parseJSON(response) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || 'Request failed');
+    const error = new Error(data.error || data.message || 'Request failed');
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
   return data;
@@ -20,8 +23,13 @@ function buildHeaders(token, headers = {}) {
   return finalHeaders;
 }
 
-export async function fetchFileMetadata(token) {
-  const response = await fetch(`${API_BASE_URL}/file/${token}`, {
+export async function fetchFileMetadata(token, password = '') {
+  const url = new URL(`${API_BASE_URL}/file/${token}`);
+  if (password) {
+    url.searchParams.set('password', password);
+  }
+
+  const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
     },
@@ -31,9 +39,13 @@ export async function fetchFileMetadata(token) {
   return parseJSON(response);
 }
 
-export async function uploadFile(file, token) {
+export async function uploadFile(file, token, expiresInHours = 'never', password = '') {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('expiresInHours', expiresInHours);
+  if (password.trim()) {
+    formData.append('password', password.trim());
+  }
 
   const response = await fetch(`${API_BASE_URL}/upload`, {
     body: formData,
@@ -46,6 +58,30 @@ export async function uploadFile(file, token) {
 
 export function getDownloadUrl(token) {
   return `${API_BASE_URL}/download/${token}`;
+}
+
+export async function downloadFile(token, password = '') {
+  const url = new URL(`${API_BASE_URL}/download/${token}`);
+  if (password) {
+    url.searchParams.set('password', password);
+  }
+
+  const response = await fetch(url, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    return parseJSON(response).then(() => null);
+  }
+
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition') || '';
+  const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+
+  return {
+    blob,
+    filename: filenameMatch?.[1] || 'download',
+  };
 }
 
 export async function registerUser(payload) {

@@ -6,12 +6,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"sharex-backend/internal/config"
 	"sharex-backend/internal/middleware"
 	"sharex-backend/internal/models"
 	"sharex-backend/internal/repository"
+	"sharex-backend/internal/services"
 	"sharex-backend/internal/utils"
 )
 
@@ -69,10 +72,10 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// allowed types
 	allowedTypes := map[string]bool{
-		"image/jpeg":              true,
-		"image/png":               true,
-		"application/pdf":         true,
-		"application/octet-stream": true,
+		"image/jpeg":                true,
+		"image/png":                 true,
+		"application/pdf":           true,
+		"application/octet-stream":  true,
 		"text/plain; charset=utf-8": true,
 	}
 
@@ -88,6 +91,18 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	// 🔥 Empty file check
 	if handler.Size == 0 {
 		utils.WriteJSONError(w, "File is empty", http.StatusBadRequest)
+		return
+	}
+
+	expiresAt, err := parseExpirationSelection(r.FormValue("expiresInHours"))
+	if err != nil {
+		utils.WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	passwordHash, err := parseOptionalFilePassword(r.FormValue("password"))
+	if err != nil {
+		utils.WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -127,13 +142,14 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newFile := models.File{
-		Filename:  handler.Filename,
-		Filepath:  fp,
-		Token:     token,
-		Size:      size,
-		OwnerID:   ownerID,
-		IsActive:  true,
-		ExpiresAt: nil,
+		Filename:     handler.Filename,
+		Filepath:     fp,
+		Token:        token,
+		Size:         size,
+		OwnerID:      ownerID,
+		IsActive:     true,
+		ExpiresAt:    expiresAt,
+		PasswordHash: passwordHash,
 	}
 
 	err = repo.Create(&newFile)
@@ -146,9 +162,72 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	downloadURL := "/download/" + token
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"message":     "File uploaded successfully",
-		"token":       token,
-		"downloadUrl": downloadURL,
+	json.NewEncoder(w).Encode(map[string]any{
+		"message":          "File uploaded successfully",
+		"token":            token,
+		"downloadUrl":      downloadURL,
+		"expiresAt":        expiresAt,
+		"requiresPassword": passwordHash != nil,
 	})
+}
+
+func parseExpirationSelection(value string) (*time.Time, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || trimmed == "never" {
+		return nil, nil
+	}
+
+	if trimmed == "1m" {
+		expiresAt := time.Now().Add(1 * time.Minute).UTC()
+		return &expiresAt, nil
+	}
+
+	hours, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return nil, errInvalidExpiration()
+	}
+
+	allowed := map[int]bool{
+		24:   true,
+		168:  true,
+		720:  true,
+		2160: true,
+	}
+
+	if !allowed[hours] {
+		return nil, errInvalidExpiration()
+	}
+
+	expiresAt := time.Now().Add(time.Duration(hours) * time.Hour).UTC()
+	return &expiresAt, nil
+}
+
+func errInvalidExpiration() error {
+	return &uploadValidationError{message: "Invalid expiration selection"}
+}
+
+func parseOptionalFilePassword(value string) (*string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil, nil
+	}
+
+	if len(trimmed) < 4 {
+		return nil, &uploadValidationError{message: "File password must be at least 4 characters"}
+	}
+
+	hash, err := services.HashPassword(trimmed)
+	if err != nil {
+		return nil, &uploadValidationError{message: "Unable to protect file with password"}
+	}
+
+	return &hash, nil
+}
+
+type uploadValidationError struct {
+	message string
+}
+
+func (e *uploadValidationError) Error() string {
+	return e.message
 }

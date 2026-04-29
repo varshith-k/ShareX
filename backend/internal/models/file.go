@@ -12,5 +12,6 @@ type File struct {
 	IsActive  bool
 	CreatedAt time.Time
 
-	ExpiresAt *time.Time
+	ExpiresAt    *time.Time
+	PasswordHash *string
 }
