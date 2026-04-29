@@ -397,3 +397,197 @@ That document includes:
 - Frontend unit test list
 - Backend unit test list
 - Updated backend API documentation
+---
+
+## Final Backend API Documentation
+
+### Base URL
+http://localhost:8080
+
+---
+
+### Authentication
+
+All protected routes require:
+
+Authorization: Bearer <jwt-token>
+
+---
+
+### 1. Health Check
+
+GET /health
+
+Response:
+{
+  "status": "ok"
+}
+
+---
+
+### 2. Register User
+
+POST /auth/register
+
+Request:
+{
+  "name": "Demo User",
+  "email": "demo@example.com",
+  "password": "demo123"
+}
+
+Responses:
+- 201 Created
+- 400 Bad Request
+
+---
+
+### 3. Login
+
+POST /auth/login
+
+Request:
+{
+  "email": "demo@example.com",
+  "password": "demo123"
+}
+
+Response:
+{
+  "token": "JWT_TOKEN"
+}
+
+Errors:
+- 401 Unauthorized
+- 400 Bad Request
+
+---
+
+### 4. Upload File
+
+POST /upload
+
+Headers:
+Authorization: Bearer <jwt-token>
+
+Body:
+multipart/form-data
+
+Response:
+{
+  "message": "File uploaded successfully",
+  "token": "generated-token",
+  "downloadUrl": "http://localhost:8080/download/generated-token"
+}
+
+Errors:
+- 401 Unauthorized
+- 400 Bad Request
+- 413 Payload Too Large
+
+---
+
+### 5. Get File Metadata
+
+GET /file/{token}
+
+Response:
+{
+  "token": "generated-token",
+  "filename": "file.pdf",
+  "expiresAt": "timestamp"
+}
+
+Errors:
+- 404 Not Found
+- 410 Gone
+
+---
+
+### 6. Download File
+
+GET /download/{token}
+
+Response:
+- Returns file
+
+Errors:
+- 403 Forbidden
+- 404 Not Found
+- 410 Gone
+
+---
+
+### 7. Get Current User
+
+GET /me
+
+Headers:
+Authorization: Bearer <jwt-token>
+
+Response:
+{
+  "id": "user-id",
+  "email": "demo@example.com"
+}
+
+Errors:
+- 401 Unauthorized
+
+---
+
+### 8. Get User Files
+
+GET /me/files
+
+Headers:
+Authorization: Bearer <jwt-token>
+
+Response:
+[
+  {
+    "token": "file-token",
+    "filename": "file.pdf",
+    "createdAt": "timestamp",
+    "expiresAt": "timestamp"
+  }
+]
+
+Errors:
+- 401 Unauthorized
+
+---
+
+### 9. Revoke File
+
+PATCH /me/files/revoke/{token}
+
+Headers:
+Authorization: Bearer <jwt-token>
+
+Response:
+{
+  "message": "File revoked"
+}
+
+Errors:
+- 401 Unauthorized
+- 404 Not Found
+
+---
+
+### 10. Delete File
+
+DELETE /me/files/{token}
+
+Headers:
+Authorization: Bearer <jwt-token>
+
+Response:
+{
+  "message": "File deleted"
+}
+
+Errors:
+- 401 Unauthorized
+- 404 Not Found
