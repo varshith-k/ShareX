@@ -1,154 +1,265 @@
-package handlers
+package repository
 
 import (
-	"encoding/json"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
+	"context"
+	"database/sql"
+	"errors"
+	"sync"
+	"time"
 
-	"sharex-backend/internal/config"
-	"sharex-backend/internal/middleware"
+	"sharex-backend/internal/database"
 	"sharex-backend/internal/models"
-	"sharex-backend/internal/repository"
-	"sharex-backend/internal/utils"
 )
 
-func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	maxUploadSize := config.MaxUploadSizeBytes()
+type FileRepository struct{}
 
-	if r.Method != http.MethodPost {
-		utils.WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+var (
+	inMemoryFiles  = map[string]*models.File{}
+	inMemoryMu     sync.RWMutex
+	nextInMemoryID = 1
+)
+
+func (r *FileRepository) Create(file *models.File) error {
+	if !file.IsActive {
+		file.IsActive = true
 	}
 
-	// 🔥 Content-Type validation (FIRST)
-	contentType := r.Header.Get("Content-Type")
-	if contentType == "" {
-		utils.WriteJSONError(w, "Content-Type header missing", http.StatusBadRequest)
-		return
+	if database.DB == nil {
+		inMemoryMu.Lock()
+		defer inMemoryMu.Unlock()
+
+		file.ID = nextInMemoryID
+		nextInMemoryID++
+		file.CreatedAt = time.Now().UTC()
+
+		fileCopy := *file
+		inMemoryFiles[file.Token] = &fileCopy
+		return nil
 	}
 
-	if !strings.HasPrefix(contentType, "multipart/form-data") {
-		utils.WriteJSONError(w, "Content-Type must be multipart/form-data", http.StatusBadRequest)
-		return
-	}
+	query := `
+	INSERT INTO files (filename, filepath, token, size, owner_id, is_active, expires_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	RETURNING id, created_at
+	`
 
-	// 🔥 Limit body size
-	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	// 🔥 Parse multipart form (ONLY ONCE)
-	err := r.ParseMultipartForm(maxUploadSize)
-	if err != nil {
-		if err.Error() == "http: request body too large" {
-			utils.WriteJSONError(w, "File exceeds maximum allowed size", http.StatusBadRequest)
-		} else {
-			utils.WriteJSONError(w, "Invalid multipart/form-data request", http.StatusBadRequest)
+	return database.DB.QueryRow(ctx, query,
+		file.Filename,
+		file.Filepath,
+		file.Token,
+		file.Size,
+		file.OwnerID,
+		file.IsActive,
+		file.ExpiresAt,
+	).Scan(&file.ID, &file.CreatedAt)
+}
+
+func (r *FileRepository) GetByToken(token string) (*models.File, error) {
+	if database.DB == nil {
+		inMemoryMu.RLock()
+		defer inMemoryMu.RUnlock()
+
+		file, ok := inMemoryFiles[token]
+		if !ok {
+			return nil, errors.New("file not found")
 		}
-		return
+
+		fileCopy := *file
+		return &fileCopy, nil
 	}
 
-	// 🔥 Get file
-	file, handler, err := r.FormFile("file")
+	query := `
+	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at, expires_at
+	FROM files
+	WHERE token = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var file models.File
+	var ownerID sql.NullInt64
+	var expiresAt sql.NullTime
+
+	err := database.DB.QueryRow(ctx, query, token).Scan(
+		&file.ID,
+		&file.Filename,
+		&file.Filepath,
+		&file.Token,
+		&file.Size,
+		&ownerID,
+		&file.IsActive,
+		&file.CreatedAt,
+		&expiresAt,
+	)
+
 	if err != nil {
-		utils.WriteJSONError(w, "File not found in request", http.StatusBadRequest)
-		return
+		return nil, err
 	}
-	defer file.Close()
 
-	buffer := make([]byte, 512)
-	_, err = file.Read(buffer)
+	if ownerID.Valid {
+		id := int(ownerID.Int64)
+		file.OwnerID = &id
+	}
+
+	if expiresAt.Valid {
+		t := expiresAt.Time
+		file.ExpiresAt = &t
+	}
+
+	return &file, nil
+}
+
+func (r *FileRepository) ListByOwnerID(ownerID int) ([]models.File, error) {
+	if database.DB == nil {
+		inMemoryMu.RLock()
+		defer inMemoryMu.RUnlock()
+
+		files := make([]models.File, 0)
+		for _, file := range inMemoryFiles {
+			if file.OwnerID == nil || *file.OwnerID != ownerID {
+				continue
+			}
+
+			fileCopy := *file
+			files = append(files, fileCopy)
+		}
+
+		return files, nil
+	}
+
+	query := `
+	SELECT id, filename, filepath, token, size, owner_id, is_active, created_at, expires_at
+	FROM files
+	WHERE owner_id = $1
+	ORDER BY created_at DESC
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := database.DB.Query(ctx, query, ownerID)
 	if err != nil {
-		utils.WriteJSONError(w, "Unable to read file", http.StatusBadRequest)
-		return
+		return nil, err
+	}
+	defer rows.Close()
+
+	files := make([]models.File, 0)
+
+	for rows.Next() {
+		var file models.File
+		var owner sql.NullInt64
+		var expiresAt sql.NullTime
+
+		if err := rows.Scan(
+			&file.ID,
+			&file.Filename,
+			&file.Filepath,
+			&file.Token,
+			&file.Size,
+			&owner,
+			&file.IsActive,
+			&file.CreatedAt,
+			&expiresAt,
+		); err != nil {
+			return nil, err
+		}
+
+		if owner.Valid {
+			id := int(owner.Int64)
+			file.OwnerID = &id
+		}
+
+		if expiresAt.Valid {
+			t := expiresAt.Time
+			file.ExpiresAt = &t
+		}
+
+		files = append(files, file)
 	}
 
-	// detect content type
-	fileType := http.DetectContentType(buffer)
-
-	// allowed types
-	allowedTypes := map[string]bool{
-		"image/jpeg":              true,
-		"image/png":               true,
-		"application/pdf":         true,
-		"application/octet-stream": true,
-		"text/plain; charset=utf-8": true,
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
-	// validate
-	if !allowedTypes[fileType] {
-		utils.WriteJSONError(w, "Unsupported file type", http.StatusBadRequest)
-		return
+	return files, nil
+}
+
+func (r *FileRepository) DeleteByToken(token string) error {
+	if database.DB == nil {
+		inMemoryMu.Lock()
+		defer inMemoryMu.Unlock()
+
+		if _, ok := inMemoryFiles[token]; !ok {
+			return errors.New("file not found")
+		}
+
+		delete(inMemoryFiles, token)
+		return nil
 	}
 
-	// reset file pointer
-	file.Seek(0, 0)
+	query := `
+	DELETE FROM files
+	WHERE token = $1
+	`
 
-	// 🔥 Empty file check
-	if handler.Size == 0 {
-		utils.WriteJSONError(w, "File is empty", http.StatusBadRequest)
-		return
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	// 🔥 Generate token
-	token := utils.GenerateToken()
-
-	// 🔥 Ensure upload directory exists
-	uploadsDir := config.UploadDir()
-	if err := os.MkdirAll(uploadsDir, os.ModePerm); err != nil {
-		utils.WriteJSONError(w, "Unable to prepare upload directory", http.StatusInternalServerError)
-		return
-	}
-
-	// 🔥 Create file path
-	fp := filepath.Join(uploadsDir, token+"_"+handler.Filename)
-
-	// 🔥 Save file
-	dst, err := os.Create(fp)
+	result, err := database.DB.Exec(ctx, query, token)
 	if err != nil {
-		utils.WriteJSONError(w, "Unable to save file", http.StatusInternalServerError)
-		return
+		return err
 	}
-	defer dst.Close()
 
-	size, err := io.Copy(dst, file)
+	if result.RowsAffected() == 0 {
+		return errors.New("file not found")
+	}
+
+	return nil
+}
+
+func (r *FileRepository) RevokeByToken(token string) error {
+	if database.DB == nil {
+		inMemoryMu.Lock()
+		defer inMemoryMu.Unlock()
+
+		file, ok := inMemoryFiles[token]
+		if !ok {
+			return errors.New("file not found")
+		}
+
+		file.IsActive = false
+		return nil
+	}
+
+	query := `
+	UPDATE files
+	SET is_active = FALSE
+	WHERE token = $1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := database.DB.Exec(ctx, query, token)
 	if err != nil {
-		utils.WriteJSONError(w, "Error saving file", http.StatusInternalServerError)
-		return
+		return err
 	}
 
-	// 🔥 Repository save
-	repo := repository.FileRepository{}
-
-	var ownerID *int
-	if uid, ok := middleware.UserIDFromContext(r.Context()); ok {
-		ownerID = &uid
+	if result.RowsAffected() == 0 {
+		return errors.New("file not found")
 	}
 
-	newFile := models.File{
-		Filename:  handler.Filename,
-		Filepath:  fp,
-		Token:     token,
-		Size:      size,
-		OwnerID:   ownerID,
-		IsActive:  true,
-		ExpiresAt: nil,
-	}
+	return nil
+}
 
-	err = repo.Create(&newFile)
-	if err != nil {
-		utils.WriteJSONError(w, "Database error", http.StatusInternalServerError)
-		return
-	}
+func ResetInMemoryStore() {
+	inMemoryMu.Lock()
+	defer inMemoryMu.Unlock()
 
-	// 🔥 Success response
-	downloadURL := "/download/" + token
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"message":     "File uploaded successfully",
-		"token":       token,
-		"downloadUrl": downloadURL,
-	})
+	inMemoryFiles = map[string]*models.File{}
+	nextInMemoryID = 1
 }

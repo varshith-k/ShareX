@@ -43,12 +43,10 @@ func main() {
 	// Health
 	mux.Handle("/health", middleware.LoggingMiddleware(http.HandlerFunc(handlers.HealthHandler)))
 
-	// Upload (Logging + RateLimiter + Auth)
+	// Upload (Auth + Logging)
 	mux.Handle("/upload",
 		middleware.LoggingMiddleware(
-			middleware.RateLimiter(
-				middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)),
-			),
+			middleware.AuthMiddleware(http.HandlerFunc(handlers.UploadHandler)),
 		),
 	)
 
@@ -60,7 +58,7 @@ func main() {
 	mux.Handle("/auth/register", middleware.LoggingMiddleware(http.HandlerFunc(handlers.RegisterHandler)))
 	mux.Handle("/auth/login", middleware.LoggingMiddleware(http.HandlerFunc(handlers.LoginHandler)))
 
-	// Protected routes
+	// Protected routes (Auth + Logging)
 	mux.Handle("/me",
 		middleware.LoggingMiddleware(
 			middleware.AuthMiddleware(http.HandlerFunc(handlers.MeHandler)),

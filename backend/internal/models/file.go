@@ -12,5 +12,5 @@ type File struct {
 	IsActive  bool
 	CreatedAt time.Time
 
-	ExpiresAt *time.Time
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
