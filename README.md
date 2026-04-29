@@ -669,3 +669,61 @@ Example:
 {
   "error": "Database error"
 }
+
+---
+
+## Backend Health & Diagnostics
+
+The backend provides a health check endpoint to verify service availability during development, testing, and deployment.
+
+---
+
+### Health Endpoint
+
+GET /health
+
+Response:
+{
+  "status": "ok"
+}
+
+---
+
+### Usage
+
+The `/health` endpoint can be used to:
+
+- Verify that the backend server is running
+- Confirm that API routes are reachable
+- Check service status before running frontend or integration tests
+- Validate deployment success in production environments
+
+---
+
+### Example (Browser or curl)
+
+http://localhost:8080/health
+
+OR
+
+curl http://localhost:8080/health
+
+---
+
+### Expected Behavior
+
+- Returns HTTP 200 if backend is healthy
+- Returns JSON response with service status
+- Should respond quickly with no authentication required
+
+---
+
+### Demo Usage
+
+During the final demo:
+
+1. Start the backend server
+2. Open `/health` endpoint in browser or Postman
+3. Show successful response before testing other APIs
+
+This confirms that the backend is live and ready for interaction.
