@@ -23,6 +23,17 @@ function Upload({ onUploaded, token }) {
   const handleUpload = async () => {
     if (!file) {
       setStatus('Please select a file first.');
+      setProgress(0);
+      setShareData(null);
+      setCopyStatus('');
+      return;
+    }
+
+    if (file && file.size > 5 * 1024 * 1024) {
+      setStatus('File size should be less than 5MB.');
+      setProgress(0);
+      setShareData(null);
+      setCopyStatus('');
       return;
     }
 
@@ -40,10 +51,15 @@ function Upload({ onUploaded, token }) {
       if (onUploaded) {
         await onUploaded();
       }
-    } catch (error) {
-      setProgress(0);
-      setStatus(error.message || 'Upload failed. Backend may not be ready yet.');
-    } finally {
+   } catch (error) {
+    setProgress(0);
+
+    if (error.message && error.message.includes("Failed to fetch")) {
+      setStatus("Cannot connect to server. Please ensure backend is running.");
+    } else {
+      setStatus(error.message || "Upload failed. Please try again.");
+    }
+  } finally {
       setIsUploading(false);
     }
   };
@@ -106,8 +122,16 @@ function Upload({ onUploaded, token }) {
           </div>
         )}
 
-        {status && <p style={styles.status}>{status}</p>}
-
+        {status && (
+          <p
+            style={{
+              ...styles.status,
+              color: status.toLowerCase().includes("fail") ? "red" : "green",
+            }}
+          >
+            {status}
+          </p>
+        )}
         {shareData && (
           <section style={styles.sharePanel}>
             <div style={styles.shareHeader}>

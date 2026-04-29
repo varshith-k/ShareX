@@ -55,4 +55,27 @@ describe('Upload page', () => {
     expect(screen.getByRole('button', { name: /copy link/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open share page/i })).toBeInTheDocument();
   });
+
+  test('shows error when file size exceeds limit', async () => {
+    render(
+      <MemoryRouter>
+        <Upload />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByLabelText(/choose file/i);
+
+    const largeFile = new File(
+      [new ArrayBuffer(6 * 1024 * 1024)], 
+      'large-file.txt', 
+      { type: 'text/plain' }
+    );
+
+    fireEvent.change(input, { target: { files: [largeFile] } });
+    fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    expect(
+      await screen.findByText(/file size should be less than 5mb/i)
+    ).toBeInTheDocument();
+  });
 });
